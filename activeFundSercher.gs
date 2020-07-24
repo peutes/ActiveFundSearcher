@@ -52,10 +52,10 @@ function scrapingMorningStar () {
   }
 }
 
-function getRankingList(sheet, rankingList, targetUrl, yearList) {
+function getRankingList(sheet, rankingList, targetUrl, yearList, characterCode) {
   const baseUrl = 'http://www.morningstar.co.jp/FundData/'
   yearList.forEach(year => {
-    const html = UrlFetchApp.fetch(baseUrl + targetUrl + '?bunruiCd=all&kikan=' + year.y + 'y').getContentText('Shift_JIS')
+    const html = UrlFetchApp.fetch(baseUrl + targetUrl + '?bunruiCd=all&kikan=' + year.y + 'y').getContentText(characterCode)
     const table = Parser.data(html).from('<table class="table1f">').to("</table>").build()
     const trList = Parser.data(table).from('<tr>').to('</tr>').iterate()
     trList.forEach((tr, i) => {
