@@ -41,7 +41,7 @@ function scrapingMorningStar () {
     getRankingList(sheet, rankingList, returnUrl, years)
     getRankingList(sheet, rankingList, sharpRatioUrl, years)
                 
-    getDetails(rankingList)
+    getDetail(rankingList)
   
     const [aveList, srdList, sqrtAveList, sqrtSrdList] = analysis(rankingList, years)
     output(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList)
@@ -67,7 +67,7 @@ function getRankingList(sheet, rankingList, targetUrl, years) {
   })
 }
 
-function getDetails(rankingList) {
+function getDetail(rankingList) {
   rankingList.forEach(ranking => {
     const linkHtml = UrlFetchApp.fetch(ranking.link).getContentText('Shift_JIS')
     const lintTable = Parser.data(linkHtml).from('<table class="table4d mb30 mt20">').to("</table>").build()    
@@ -132,37 +132,10 @@ function output(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList) 
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtAveList, sqrtSrdList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    data.push([
-      ranking.link,
-      ranking.name,
-      finalResult,
-      finalTargetList[0], 
-      finalTargetList[1],
-      finalTargetList[2],
-      finalTargetList[3],
-      '',
-      finalSqrtResult,
-      finalSqrtTargetList[0], 
-      finalSqrtTargetList[1],
-      finalSqrtTargetList[2],
-      finalSqrtTargetList[3],
-      '',
-      rankingTargetList[0],
-      ranking.returnList[0],
-      ranking.sharpList[0],
-      '',
-      rankingTargetList[1],
-      ranking.returnList[1],
-      ranking.sharpList[1],
-      '',
-      rankingTargetList[2],
-      ranking.returnList[2],
-      ranking.sharpList[2],
-      '',
-      rankingTargetList[3],
-      ranking.returnList[3],
-      ranking.sharpList[3]
-    ])
+    data.push(ranking.link, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList)
+    rankingTargetList.map((target, i) => {
+     data.push('', target, ranking.returnList[i], ranking.sharpList[i])
+    })
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
   
