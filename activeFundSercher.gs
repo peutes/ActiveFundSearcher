@@ -21,11 +21,11 @@ class Ranking {
 
 //hook
 function onOpen() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet();  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
   sheet.addMenu("Google App Script",  [
     {name: 'モーニングスタースクレイピング', functionName: 'scrapingMorningStar'},
     {name: 'みんかぶスクレイピング', functionName: 'scrapingMinkabu'},
-  ]);
+  ])
 }
 
 function scrapingMorningStar () {
