@@ -79,13 +79,11 @@ function getDetails(rankingList) {
     const sharpNum = 40 // 40番目からのtdがシャープレシオ    
     ranking.returnList = ranking.returnList.map((_, i) => getTdList(tdList, i))
     ranking.sharpList = ranking.sharpList.map((_, i) => getTdList(tdList, sharpNum + i))
-    console.log(ranking.returnList, ranking.sharpList)
   })
 }
 
 function getTdList(tdList, i) {
   const result = /<span class="(plus|minus)">(.*)<\/span>/.exec(tdList[i])
-  console.log(result)
   return result ? result[2].replace(/%/, '') : null
 }
 
