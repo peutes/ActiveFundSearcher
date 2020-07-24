@@ -1,9 +1,9 @@
 class Ranking {
-  constructor(name, link, yearsNum) {
+  constructor(name, link, yearListNum) {
     this.name = name
     this.link = link
-    this.returnList = new Array(yearsNum).fill(null)
-    this.sharpList =  new Array(yearsNum).fill(null)
+    this.returnList = new Array(yearListNum).fill(null)
+    this.sharpList =  new Array(yearListNum).fill(null)
   }
   
   targetList() {
@@ -19,7 +19,7 @@ class Ranking {
   }
 }
 
-//hook
+// hook
 function onOpen() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
   sheet.addMenu("Google App Script",  [
@@ -30,31 +30,32 @@ function onOpen() {
 
 function scrapingMorningStar () {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('モーニングスター')
-    sheet.clear()
-  
-    const rankingList = new Map()
+    const sheetName = 'モーニングスター'
     const returnUrl = 'FundRankingReturn.do'
     const sharpRatioUrl = 'FundRankingSharpRatio.do'
+    const characterCode = 'Shift_JIS'
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
+    sheet.clear()
   
-    const years = [1, 3, 5, 10]
-    getRankingList(sheet, rankingList, returnUrl, years)
-    getRankingList(sheet, rankingList, sharpRatioUrl, years)
-                
-    getDetail(rankingList)
+    const rankingList = new Map()  
+    const yearList = [{n:0, y:1}, {n:1, y:3}, {n:2, y:5}, {n:3, y:10}]
+    getRankingList(sheet, rankingList, returnUrl, yearList)
+    getRankingList(sheet, rankingList, sharpRatioUrl, yearList)
+    getDetail(rankingList, characterCode, yearList)
   
-    const [aveList, srdList, sqrtAveList, sqrtSrdList] = analysis(rankingList, years)
-    output(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList)
+    const [aveList, srdList, sqrtAveList, sqrtSrdList] = analysis(rankingList, yearList)
+    outputToSheet(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList)
   } catch(e) {
     console.error("message:" + e.message + "\nstack:" + e.stack)
     throw e
   }
 }
 
-function getRankingList(sheet, rankingList, targetUrl, years) {
+function getRankingList(sheet, rankingList, targetUrl, yearList) {
   const baseUrl = 'http://www.morningstar.co.jp/FundData/'
-  years.forEach(year => {
-    const html = UrlFetchApp.fetch(baseUrl + targetUrl + '?bunruiCd=all&kikan=' + year + 'y').getContentText('Shift_JIS')
+  yearList.forEach(year => {
+    const html = UrlFetchApp.fetch(baseUrl + targetUrl + '?bunruiCd=all&kikan=' + year.y + 'y').getContentText('Shift_JIS')
     const table = Parser.data(html).from('<table class="table1f">').to("</table>").build()
     const trList = Parser.data(table).from('<tr>').to('</tr>').iterate()
     trList.forEach((tr, i) => {
@@ -62,23 +63,20 @@ function getRankingList(sheet, rankingList, targetUrl, years) {
   
       const name = Parser.data(tr).from('target="_blank" >').to('</a>').build()
       const link = Parser.data(tr).from('<a\ href="').to('"').build()
-      rankingList.set(link, new Ranking(name, baseUrl + link, years.length))
+      rankingList.set(link, new Ranking(name, baseUrl + link, yearList.length))
     })
   })
 }
 
-function getDetail(rankingList) {
+function getDetail(rankingList, characterCode, yearList) {
   rankingList.forEach(ranking => {
-    const linkHtml = UrlFetchApp.fetch(ranking.link).getContentText('Shift_JIS')
+    const linkHtml = UrlFetchApp.fetch(ranking.link).getContentText(characterCode)
     const lintTable = Parser.data(linkHtml).from('<table class="table4d mb30 mt20">').to("</table>").build()    
     const tdList = lintTable.match(/<td>(.*?)<\/td>/g)
-    if (!tdList) {
-      return
-    }
   
-    const sharpNum = 40 // 40番目からのtdがシャープレシオ    
-    ranking.returnList = ranking.returnList.map((_, i) => getTdList(tdList, i))
-    ranking.sharpList = ranking.sharpList.map((_, i) => getTdList(tdList, sharpNum + i))
+    const sharpNum = 40 // 40番目からのtdがシャープレシオ
+    ranking.returnList = yearList.map(year => getTdList(tdList, year.n))
+    ranking.sharpList = yearList.map(year => getTdList(tdList, sharpNum + year.n))
   })
 }
 
@@ -87,14 +85,14 @@ function getTdList(tdList, i) {
   return result ? result[2].replace(/%/, '') : null
 }
 
-function analysis(rankingList, years) {
-  let targetList = years.map(_ => [])
-  let sqrtTargetList = years.map(_ => [])
+function analysis(rankingList, yearList) {
+  let targetList = yearList.map(_ => [])
+  let sqrtTargetList = yearList.map(_ => [])
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
     const rankingSqrtTargetList = ranking.sqrtTargetList()
 
-    years.forEach((_, i) => {
+    yearList.forEach((_, i) => {
       targetList[i].push(rankingTargetList[i])
       sqrtTargetList[i].push(rankingSqrtTargetList[i])
     })
@@ -121,32 +119,35 @@ function getStatistics(targetList) {
   return [aveList, srdList]
 }
 
-function output(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList) { 
+function outputToSheet(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList) { 
   const data = []
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
-    const finalTargetList = getFinalTarget(rankingTargetList, aveList, srdList)    
+    const finalTargetList = getFinalTarget(rankingTargetList, aveList, srdList)
     const finalResult = finalTargetList.reduce((acc, v) => acc + v)
 
     const rankingSqrtTargetList = ranking.sqrtTargetList()
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtAveList, sqrtSrdList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    data.push(ranking.link, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList)
+    const row = [ranking.link, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
     rankingTargetList.map((target, i) => {
-     data.push('', target, ranking.returnList[i], ranking.sharpList[i])
+     row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
+    data.push(row)
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
   
-  for(let i=13; i>=3; i--) {
-    if (i==8) continue
+  const colorList = ["lime", "yellow", "orange", "pink"]
+  const resultNum = 3
+  for(let i=resultNum; i<6 + aveList.length + sqrtAveList.length; i++) {
+    if (i == 4 + aveList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
-    sheet.getRange(1, i, 5).setBackground("lime")
-    sheet.getRange(6, i, 5).setBackground("yellow")
-    sheet.getRange(11, i, 5).setBackground("orange")
-    sheet.getRange(16, i, 5).setBackground("pink")
+    colorList.forEach((color, m) => {
+      sheet.getRange(1 + 5*m, i, 5).setBackground(color)
+    })
   }
+  sheet.getDataRange().sort({column: resultNum, ascending: false})
 }
 
 function getFinalTarget(targetList, aveList, srdList) {
