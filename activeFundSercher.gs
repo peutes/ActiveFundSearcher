@@ -23,12 +23,12 @@ class Ranking {
 function onOpen() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
   sheet.addMenu("Google App Script",  [
-    {name: 'モーニングスタースクレイピング', functionName: 'scrapingMorningStar'},
+    {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
     {name: 'みんかぶスクレイピング', functionName: 'scrapingMinkabu'},
   ])
 }
 
-function scrapingMorningStar () {
+function scrapingFromMorningStar () {
   try {
     const sheetName = 'モーニングスター'
     const returnUrl = 'FundRankingReturn.do'
@@ -40,9 +40,9 @@ function scrapingMorningStar () {
   
     const rankingList = new Map()  
     const yearList = [{n:0, y:1}, {n:1, y:3}, {n:2, y:5}, {n:3, y:10}]
-    getRankingList(sheet, rankingList, returnUrl, yearList)
-    getRankingList(sheet, rankingList, sharpRatioUrl, yearList)
-    getDetail(rankingList, characterCode, yearList)
+    getRankingListFromMorningStar(sheet, rankingList, returnUrl, yearList, characterCode)
+    getRankingListFromMorningStar(sheet, rankingList, sharpRatioUrl, yearList, characterCode)
+    getDetailFromMorningStar(rankingList, characterCode, yearList)
   
     const [aveList, srdList, sqrtAveList, sqrtSrdList] = analysis(rankingList, yearList)
     outputToSheet(sheet, rankingList, aveList, srdList, sqrtAveList, sqrtSrdList)
@@ -52,7 +52,7 @@ function scrapingMorningStar () {
   }
 }
 
-function getRankingList(sheet, rankingList, targetUrl, yearList, characterCode) {
+function getRankingListFromMorningStar(sheet, rankingList, targetUrl, yearList, characterCode) {
   const baseUrl = 'http://www.morningstar.co.jp/FundData/'
   yearList.forEach(year => {
     const html = UrlFetchApp.fetch(baseUrl + targetUrl + '?bunruiCd=all&kikan=' + year.y + 'y').getContentText(characterCode)
@@ -68,19 +68,19 @@ function getRankingList(sheet, rankingList, targetUrl, yearList, characterCode) 
   })
 }
 
-function getDetail(rankingList, characterCode, yearList) {
+function getDetailFromMorningStar(rankingList, characterCode, yearList) {
   rankingList.forEach(ranking => {
     const linkHtml = UrlFetchApp.fetch(ranking.link).getContentText(characterCode)
     const lintTable = Parser.data(linkHtml).from('<table class="table4d mb30 mt20">').to("</table>").build()    
     const tdList = lintTable.match(/<td>(.*?)<\/td>/g)
   
     const sharpNum = 40 // 40番目からのtdがシャープレシオ
-    ranking.returnList = yearList.map(year => getTdList(tdList, year.n))
-    ranking.sharpList = yearList.map(year => getTdList(tdList, sharpNum + year.n))
+    ranking.returnList = yearList.map(year => getTdListFromMorningStar(tdList, year.n))
+    ranking.sharpList = yearList.map(year => getTdListFromMorningStar(tdList, sharpNum + year.n))
   })
 }
 
-function getTdList(tdList, i) {
+function getTdListFromMorningStar(tdList, i) {
   const result = /<span class="(plus|minus)">(.*)<\/span>/.exec(tdList[i])
   return result ? result[2].replace(/%/, '') : null
 }
