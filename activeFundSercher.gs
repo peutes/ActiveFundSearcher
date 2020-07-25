@@ -1,9 +1,10 @@
 class Ranking {
-  constructor(name, link, termListNum) {
+  constructor(name, link, termListNum, ignore) {
     this.name = name
     this.link = link
     this.returnList = new Array(termListNum).fill(null)
     this.sharpList =  new Array(termListNum).fill(null)
+    this.ignore = ignore
   }
   
   targetList() {
@@ -23,8 +24,8 @@ class Ranking {
 function onOpen() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
   sheet.addMenu("Google App Script",  [
-    {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
     {name: 'みんかぶスクレイピング', functionName: 'scrapingFromMinkabu'},
+    {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
   ])
 }
 
@@ -40,15 +41,16 @@ function scrapingFromMinkabu () {
     const pass = {return: '/return', sharp: '/sharpe_ratio'}
     const pageNum = {return: 5, sharp: 1}
     const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
+    const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン']
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
     sheet.clear()
     console.log("sheet.clear")
 
     const rankingList = new Map()
-    getRankingListFromMinkabu(sheet, rankingList, pass.return, termList, pageNum.return)
+    getRankingListFromMinkabu(sheet, rankingList, pass.return, termList, pageNum.return, ignoreList)
     console.log("getRankingListFromMinkabu:return")
-    getRankingListFromMinkabu(sheet, rankingList, pass.sharp, termList, pageNum.sharp)
+    getRankingListFromMinkabu(sheet, rankingList, pass.sharp, termList, pageNum.sharp, ignoreList)
     console.log("getRankingListFromMinkabu:sharpRatio")
     getDetailFromMinkabu(rankingList, termList)
     console.log("getDetailFromMinkabu")
@@ -63,7 +65,7 @@ function scrapingFromMinkabu () {
   }
 }
 
-function getRankingListFromMinkabu(sheet, rankingList, targetPass, termList, pageNum) {
+function getRankingListFromMinkabu(sheet, rankingList, targetPass, termList, pageNum, ignoreList) {
   const baseUrl = 'https://itf.minkabu.jp'
   termList.forEach(term => {
     for(let page=0; page<pageNum; page++) {
@@ -75,7 +77,10 @@ function getRankingListFromMinkabu(sheet, rankingList, targetPass, termList, pag
         const result = a.match(/href="(.*)">(.*)/)
         const pass = result[1]
         const name = result[2]
-        rankingList.set(pass, new Ranking(name, baseUrl + pass + '/risk_cont', termList.length))
+        const link = baseUrl + pass + '/risk_cont'
+        const ignore = ignoreList.some(i => i === name)
+        
+        rankingList.set(pass, new Ranking(name, link, termList.length, ignore))
       })
     }
   })
@@ -134,7 +139,7 @@ function getRankingListFromMorningStar(sheet, rankingList, targetPass, termList,
   
       const name = Parser.data(tr).from('target="_blank" >').to('</a>').build()
       const link = Parser.data(tr).from('<a\ href="').to('"').build()
-      rankingList.set(link, new Ranking(name, baseUrl + link, termList.length))
+      rankingList.set(link, new Ranking(name, baseUrl + link, termList.length, false))
     })
   })
 }
@@ -192,10 +197,11 @@ function getStatistics(targetList) {
   })
   console.log(sumList, srdList, medianList)
   return [srdList, medianList]
-}
+}1
 
 function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList) { 
   const data = []
+  let n = 1
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
     const finalTargetList = getFinalTarget(rankingTargetList, srdList, medianList)
@@ -210,10 +216,15 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
     data.push(row)
+
+    if(ranking.ignore) {
+      sheet.getRange(n, 2).setBackground('gray')
+    }
+    n++
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-  
-  const colorList = ["lime", "yellow", "orange", "pink"]
+
+  const colorList = ['lime', 'yellow', 'orange', 'pink']
   const resultNum = 3
   for(let i=resultNum; i<6 + srdList.length + sqrtSrdList.length; i++) {
     if (i == 4 + srdList.length) continue
