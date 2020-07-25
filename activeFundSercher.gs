@@ -37,20 +37,18 @@ function scrapingFromMinkabu () {
   try {
     console.log("start")
     const sheetName = 'みんかぶ'
-    const returnPass = '/return'
-    const sharpRatioPass = '/sharpe_ratio'
-    const returnPageNum = 6
-    const sharpPageNum = 1
+    const pass = {return: '/return', sharp: '/sharpe_ratio'}
+    const pageNum = {return: 5, sharp: 1}
+    const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
     sheet.clear()
     console.log("sheet.clear")
 
-    const rankingList = new Map()  
-    const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
-    getRankingListFromMinkabu(sheet, rankingList, returnPass, termList, returnPageNum)
+    const rankingList = new Map()
+    getRankingListFromMinkabu(sheet, rankingList, pass.return, termList, pageNum.return)
     console.log("getRankingListFromMinkabu:return")
-    getRankingListFromMinkabu(sheet, rankingList, sharpRatioPass, termList, sharpPageNum)
+    getRankingListFromMinkabu(sheet, rankingList, pass.sharp, termList, pageNum.sharp)
     console.log("getRankingListFromMinkabu:sharpRatio")
     getDetailFromMinkabu(rankingList, termList)
     console.log("getDetailFromMinkabu")
@@ -207,7 +205,7 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    const row = [ranking.link, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
+    const row = [ranking.link, ranking.name, finalSqrtResult, finalSqrtTargetList, '', finalResult, finalTargetList].flat()
     rankingTargetList.map((target, i) => {
      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
