@@ -5,6 +5,8 @@ class Ranking {
     this.returnList = new Array(termListNum).fill(null)
     this.sharpList =  new Array(termListNum).fill(null)
     this.ignore = ignore
+    this.date = null
+    this.category = null
   }
   
   targetList() {
@@ -26,6 +28,7 @@ function onOpen() {
   sheet.addMenu("Google App Script",  [
     {name: 'みんかぶスクレイピング', functionName: 'scrapingFromMinkabu'},
     {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
+    {name: '自動化シート一括削除', functionName: 'deleteAutoSheet'},    
   ])
 }
 
@@ -34,6 +37,23 @@ function scrapingAll() {
   scrapingFromMinkabu()
 }
 
+    
+function deleteAutoSheet() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
+  const ignoreSheet= ['過去メモ', 'iDeCo']
+  ignoreSheet.forEach(sheetName => {
+    SpreadsheetApp.setActiveSheet(spreadsheet.getSheetByName(sheetName))
+    spreadsheet.moveActiveSheet(1)
+  })
+  
+  spreadsheet.getSheets().forEach((sheet, i) => {
+    if (i >= ignoreSheet.length) {
+      spreadsheet.deleteSheet(sheet)
+    }
+  })
+}
+    
+
 function scrapingFromMinkabu () {
   try {
     console.log("start")
@@ -41,11 +61,8 @@ function scrapingFromMinkabu () {
     const pass = {return: '/return', sharp: '/sharpe_ratio'}
     const pageNum = {return: 5, sharp: 1}
     const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
-    const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン']
-
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
-    sheet.clear()
-    console.log("sheet.clear")
+    const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）']
+    const sheet = createSheet(sheetName)
 
     const rankingList = new Map()
     getRankingListFromMinkabu(sheet, rankingList, pass.return, termList, pageNum.return, ignoreList)
@@ -79,7 +96,6 @@ function getRankingListFromMinkabu(sheet, rankingList, targetPass, termList, pag
         const name = result[2]
         const link = baseUrl + pass + '/risk_cont'
         const ignore = ignoreList.some(i => i === name)
-        
         rankingList.set(pass, new Ranking(name, link, termList.length, ignore))
       })
     }
@@ -100,7 +116,8 @@ function getDetailFromMinkabu(rankingList, termList) {
     ranking.sharpList = termList.map(term => {
       const result = spanList[sharpNum + term.n].replace(/%/, '')
       return result != '-' ? result : null
-    })
+    })    
+    ranking.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
   })
 }
     
@@ -110,14 +127,13 @@ function scrapingFromMorningStar() {
     const returnPass = 'FundRankingReturn.do'
     const sharpRatioPass = 'FundRankingSharpRatio.do'
     const characterCode = 'Shift_JIS'
-
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
-    sheet.clear()
+    const ignoreList = ['DIAM 新興市場日本株ファンド', 'SBI 中小型成長株F ジェイネクスト 『愛称：jnext』', 'FANG+インデックス・オープン', 'SBI 中小型割安成長株F ジェイリバイブ 『愛称：jrevive』', 'ゲーム&amp;eスポーツ･オープン', '(NEXT FUNDS)NASDAQ-100(R)連動型上場投信 『愛称：NASDAQ-100ETF』']
+    const sheet = createSheet(sheetName)
 
     const rankingList = new Map()
     const termList = [{n:0, year:1}, {n:1, year:3}, {n:2, year:5}, {n:3, year:10}]
-    getRankingListFromMorningStar(sheet, rankingList, returnPass, termList, characterCode)
-    getRankingListFromMorningStar(sheet, rankingList, sharpRatioPass, termList, characterCode)
+    getRankingListFromMorningStar(sheet, rankingList, returnPass, termList, characterCode, ignoreList)
+    getRankingListFromMorningStar(sheet, rankingList, sharpRatioPass, termList, characterCode, ignoreList)
     getDetailFromMorningStar(rankingList, termList, characterCode)
 
     const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList)
@@ -128,18 +144,26 @@ function scrapingFromMorningStar() {
   }
 }
 
-function getRankingListFromMorningStar(sheet, rankingList, targetPass, termList, characterCode) {
+function createSheet(sheetName) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
+  return spreadsheet.insertSheet(sheetName + ":" + (new Date().toLocaleString("ja")), 0)
+}
+
+function getRankingListFromMorningStar(sheet, rankingList, targetPass, termList, characterCode, ignoreList) {
   const baseUrl = 'http://www.morningstar.co.jp/FundData/'
   termList.forEach(term => {
     const html = UrlFetchApp.fetch(baseUrl + targetPass + '?bunruiCd=all&kikan=' + term.year + 'y').getContentText(characterCode)
     const table = Parser.data(html).from('<table class="table1f">').to('</table>').build()
     const trList = Parser.data(table).from('<tr>').to('</tr>').iterate()
+    const date = Parser.data(html).from('<span class="ptdate">').to('</span>').build()
+    const category = Parser.data(html).from('<td class="fcate">').to('</td>').build()
     trList.forEach((tr, i) => {
       if (i == 0) return // unknown garbage
   
       const name = Parser.data(tr).from('target="_blank" >').to('</a>').build()
       const link = Parser.data(tr).from('<a\ href="').to('"').build()
-      rankingList.set(link, new Ranking(name, baseUrl + link, termList.length, false))
+      const ignore = ignoreList.some(i => i === name)
+      rankingList.set(link, new Ranking(name, baseUrl + link, termList.length, ignore))
     })
   })
 }
@@ -150,7 +174,9 @@ function getDetailFromMorningStar(rankingList, termList, characterCode) {
     const html = UrlFetchApp.fetch(ranking.link).getContentText(characterCode)
     const table = Parser.data(html).from('<table class="table4d mb30 mt20">').to('</table>').build()    
     const tdList = table.match(/<td>(.*?)<\/td>/g)
-  
+    
+    ranking.date = Parser.data(html).from('<span class="ptdate">').to('</span>').build()
+    ranking.category = Parser.data(html).from('<td class="fcate">').to('</td>').build()
     ranking.returnList = termList.map(term => getTdListFromMorningStar(tdList, term.n))
     ranking.sharpList = termList.map(term => getTdListFromMorningStar(tdList, sharpNum + term.n))
   })
@@ -211,29 +237,31 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    const row = [ranking.link, ranking.name, finalSqrtResult, finalSqrtTargetList, '', finalResult, finalTargetList].flat()
+    const row = [ranking.date, ranking.link, ranking.category, ranking.name, finalSqrtResult, finalSqrtTargetList, '', finalResult, finalTargetList].flat()
     rankingTargetList.map((target, i) => {
      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
     data.push(row)
 
     if(ranking.ignore) {
-      sheet.getRange(n, 2).setBackground('gray')
+      sheet.getRange(n, 4).setBackground('gray')
     }
     n++
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  const resultNum = 3
-  for(let i=resultNum; i<6 + srdList.length + sqrtSrdList.length; i++) {
-    if (i == 4 + srdList.length) continue
+  const resultNum = 5
+  for(let i=resultNum; i<8 + srdList.length + sqrtSrdList.length; i++) {
+    if (i == 6 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
     })
   }
   sheet.getDataRange().sort({column: resultNum, ascending: false})
+  sheet.autoResizeColumn(3)
+  sheet.autoResizeColumn(4)
 }
 
 function getFinalTarget(targetList, srdList, medianList) {
