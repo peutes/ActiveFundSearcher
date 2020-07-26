@@ -25,7 +25,7 @@ class Ranking {
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       if (i === 0 && length === 6) {
-        return Number(this.sharpList[i])
+        return this.sharpList[i]
       }
       return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null  
     })
@@ -47,7 +47,6 @@ function scrapingAll() {
   scrapingFromMinkabu()
 }
 
-    
 function deleteAutoSheet() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
   const ignoreSheet= ['過去メモ', 'iDeCo']
@@ -62,7 +61,6 @@ function deleteAutoSheet() {
     }
   })
 }
-    
 
 function scrapingFromMinkabu () {
   try {
@@ -121,11 +119,11 @@ function getDetailFromMinkabu(rankingList, termList) {
     const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     ranking.returnList = termList.map(term => {
       const result = spanList[term.n].replace(/%/, '')
-      return result != '-' ? result : null
+      return result != '-' ? Number(result) : null
     })
     ranking.sharpList = termList.map(term => {
       const result = spanList[sharpNum + term.n].replace(/%/, '')
-      return result != '-' ? result : null
+      return result != '-' ? Number(result) : null
     })    
     ranking.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
   })
@@ -194,7 +192,7 @@ function getDetailFromMorningStar(rankingList, termList, characterCode) {
 
 function getTdListFromMorningStar(tdList, i) {
   const result = /<span class="(plus|minus)">(.*)<\/span>/.exec(tdList[i])
-  return result ? result[2].replace(/%/, '') : null
+  return result ? Number(result[2].replace(/%/, '')) : null
 }
 
 function analysis(rankingList, termList) {
@@ -260,6 +258,14 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
+  setColors(sheet)
+}
+
+function getFinalTarget(targetList, srdList, medianList) {
+  return targetList.map((t, i) => (t || medianList[i]) / srdList[i])
+}
+
+function setColors(sheet) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
   const resultNum = 5
   for(let i=resultNum; i < resultNum + 3 + srdList.length + sqrtSrdList.length; i++) {
@@ -270,10 +276,23 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     })
   }
   sheet.getDataRange().sort({column: resultNum, ascending: false})
+  
   sheet.autoResizeColumn(3)
   sheet.autoResizeColumn(4)
-}
 
-function getFinalTarget(targetList, srdList, medianList) {
-  return targetList.map((t, i) => (t || medianList[i]) / srdList[i])
+  let i = 0
+  const max = 10
+  const white = '#ffffff' // needs RGB color
+  const aqua = 'aqua'
+  const range = sheet.getRange(1, 4, sheet.getLastRow() - 1)
+  const rgbs = range.getBackgrounds().map(rows => {
+    return rows.map(rgb => {
+      if (i >= max || rgb !== white) {
+        return rgb
+      }
+      i++;
+      return aqua
+    })
+  })
+  range.setBackgrounds(rgbs)
 }
