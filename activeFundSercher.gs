@@ -14,9 +14,9 @@ class Ranking {
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       if (i === 0 && length === 6) {
-        return this.sharpList[i]
+        return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null
       }
-      return r != null ? Math.abs(r) * this.sharpList[i] : null  
+      return r != null ? Math.abs(r) * this.sharpList[i] : null
     })
   }
   
@@ -27,7 +27,7 @@ class Ranking {
       if (i === 0 && length === 6) {
         return this.sharpList[i]
       }
-      return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null  
+      return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null
     })
   }
 }
@@ -245,8 +245,8 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    const row = [ranking.date, ranking.link, ranking.category, ranking.name, finalSqrtResult, finalSqrtTargetList, '', finalResult, finalTargetList].flat()
-    rankingSqrtTargetList.map((target, i) => {
+    const row = [ranking.date, ranking.link, ranking.category, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
+    rankingTargetList.map((target, i) => {
      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
     data.push(row)
@@ -258,24 +258,24 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
-  setColors(sheet)
+  setColors(sheet, srdList, sqrtSrdList)
 }
 
 function getFinalTarget(targetList, srdList, medianList) {
   return targetList.map((t, i) => (t || medianList[i]) / srdList[i])
 }
 
-function setColors(sheet) {
+function setColors(sheet, srdList, sqrtSrdList) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  const resultNum = 5
-  for(let i=resultNum; i < resultNum + 3 + srdList.length + sqrtSrdList.length; i++) {
-    if (i === resultNum + 1 + srdList.length) continue
+  const targetNum = 5
+  for(let i=targetNum; i < targetNum + 3 + srdList.length + sqrtSrdList.length; i++) {
+    if (i === targetNum + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
     })
   }
-  sheet.getDataRange().sort({column: resultNum, ascending: false})
+  sheet.getDataRange().sort({column: targetNum, ascending: false})
   
   sheet.autoResizeColumn(3)
   sheet.autoResizeColumn(4)
