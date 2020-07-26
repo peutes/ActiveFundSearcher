@@ -248,7 +248,7 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
     const row = [ranking.date, ranking.link, ranking.category, ranking.name, finalSqrtResult, finalSqrtTargetList, '', finalResult, finalTargetList].flat()
-    rankingTargetList.map((target, i) => {
+    rankingSqrtTargetList.map((target, i) => {
      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
     data.push(row)
