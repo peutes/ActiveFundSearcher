@@ -10,13 +10,23 @@ class Ranking {
   }
   
   targetList() {
+    const length = this.returnList.length
     return this.returnList.map((r, i) => {
+      // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
+      if (i === 0 && length === 6) {
+        return this.sharpList[i]
+      }
       return r != null ? Math.abs(r) * this.sharpList[i] : null  
     })
   }
   
   sqrtTargetList() {
+    const length = this.returnList.length
     return this.returnList.map((r, i) => {
+      // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
+      if (i === 0 && length === 6) {
+        return Number(this.sharpList[i])
+      }
       return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null  
     })
   }
@@ -158,7 +168,7 @@ function getRankingListFromMorningStar(sheet, rankingList, targetPass, termList,
     const date = Parser.data(html).from('<span class="ptdate">').to('</span>').build()
     const category = Parser.data(html).from('<td class="fcate">').to('</td>').build()
     trList.forEach((tr, i) => {
-      if (i == 0) return // unknown garbage
+      if (i === 0) return // unknown garbage
   
       const name = Parser.data(tr).from('target="_blank" >').to('</a>').build()
       const link = Parser.data(tr).from('<a\ href="').to('"').build()
@@ -252,8 +262,8 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
 
   const colorList = ['lime', 'yellow', 'orange', 'pink']
   const resultNum = 5
-  for(let i=resultNum; i<8 + srdList.length + sqrtSrdList.length; i++) {
-    if (i == 6 + srdList.length) continue
+  for(let i=resultNum; i < resultNum + 3 + srdList.length + sqrtSrdList.length; i++) {
+    if (i === resultNum + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
