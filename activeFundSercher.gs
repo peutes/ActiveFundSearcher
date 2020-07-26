@@ -13,10 +13,11 @@ class Ranking {
     const length = this.returnList.length
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
+      let m = Math.abs(r)
       if (i === 0 && length === 6) {
-        return r != null ? Math.sqrt(Math.abs(r)) * this.sharpList[i] : null
+        m = Math.sqrt(m)
       }
-      return r != null ? Math.abs(r) * this.sharpList[i] : null
+      return r != null ? m * this.sharpList[i] : null
     })
   }
   
