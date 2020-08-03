@@ -430,6 +430,9 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     n++
   })
   setColors(sheet, srdList, sqrtSrdList, targetRow)
+
+  const range = sheet.getRange(1, targetRow, sheet.getLastRow() - 1)
+  range.setFontWeight("bold")
 }
 
 function outputSimpleToSheet(sheet, fundList) {
@@ -480,5 +483,4 @@ function setColors(sheet, srdList, sqrtSrdList, targetRow) {
     })
   })
   range.setBackgrounds(rgbs)
-  range.setFontWeight("bold")
 }
