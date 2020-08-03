@@ -16,7 +16,7 @@ class Ranking {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       let m = Math.abs(r) * this.sharpList[i]
       if (length === 6 && i === 0) {
-        m = Math.sqrt(Math.abs(m)) * (this.sharpList[i] > 0 ? 1 : -1)
+        m = Math.pow(Math.abs(m), 1/2) * (this.sharpList[i] > 0 ? 1 : -1)
       }
       return r != null ? m : null
     })
@@ -28,19 +28,33 @@ class Ranking {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
       if (length === 6 && i === 0) {
-        m = Math.sqrt(Math.abs(m)) * (this.sharpList[i] > 0 ? 1 : -1)
+        m = Math.pow(Math.abs(m), 1/2) * (this.sharpList[i] > 0 ? 1 : -1)
       }
       return r != null ? m : null
     })
   }
 }
 
+let sheetNames = [];
+for(let i=0; i<8; i++) {
+ sheetNames.push('みんかぶデータ' + (i+1))
+}
+const termList6 = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
+const termListNum = 6
+
 // hook
 function onOpen() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
   sheet.addMenu("Google App Script",  [
-    {name: 'みんかぶシンプルスクレイピング', functionName: 'scrapingSimpleFromMinkabu'},
-    {name: 'みんかぶスクレイピング', functionName: 'scrapingFromMinkabu'},
+    {name: 'みんかぶシンプル1', functionName: 'scrapingSimpleFromMinkabu1'},
+    {name: 'みんかぶシンプル2', functionName: 'scrapingSimpleFromMinkabu2'},
+    {name: 'みんかぶシンプル3', functionName: 'scrapingSimpleFromMinkabu3'},
+    {name: 'みんかぶシンプル4', functionName: 'scrapingSimpleFromMinkabu4'},
+    {name: 'みんかぶシンプル5', functionName: 'scrapingSimpleFromMinkabu5'},
+    {name: 'みんかぶシンプル6', functionName: 'scrapingSimpleFromMinkabu6'},
+    {name: 'みんかぶシンプル7', functionName: 'scrapingSimpleFromMinkabu7'},
+    {name: 'みんかぶシンプル8', functionName: 'scrapingSimpleFromMinkabu8'},
+    {name: 'みんかぶスクレイピング', functionName: 'scrapingFromMinkabuDataSheet'},
     {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
     {name: '自動化シート一括削除', functionName: 'deleteAutoSheet'},
   ])
@@ -62,39 +76,75 @@ function deleteAutoSheet() {
 }
 
 function scrapingSimpleFromMinkabu1() {
-  const sheetName = 'みんかぶデータ1'
   const pass = '/return'
-  const page = {start:1, end:7}
+  const page = {start:1, end:6}
   const fundList = new Map()
   
   getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetName, fundList)
+  _scrapingSimpleFromMinkabu(sheetNames[0], fundList)
 }
 
 function scrapingSimpleFromMinkabu2() {
-  const sheetName = 'みんかぶデータ2'
   const pass = '/return'
-  const page = {start:8, end:11}
+  const page = {start:7, end:9}
   const fundList = new Map()
   
   getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetName, fundList)
+  _scrapingSimpleFromMinkabu(sheetNames[1], fundList)
 }
 
 function scrapingSimpleFromMinkabu3() {
-  const sheetName = 'みんかぶデータ3'
   const pass = '/return'
-  const page = {start:12, end:15}
+  const page = {start:10, end:12}
   const fundList = new Map()
   
   getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetName, fundList)
+  _scrapingSimpleFromMinkabu(sheetNames[2], fundList)
 }
 
 function scrapingSimpleFromMinkabu4() {
-  const sheetName = 'みんかぶデータ4'
+  const pass = '/return'
+  const page = {start:13, end:15}
   const fundList = new Map()
-  const termListNum = 6
+  
+  getRankingListFromMinkabu(fundList, pass, page, [])
+  _scrapingSimpleFromMinkabu(sheetNames[3], fundList)
+}
+
+function scrapingSimpleFromMinkabu5() {
+  const pass = '/return'
+  const page = {start:16, end:18}
+  const fundList = new Map()
+  
+  getRankingListFromMinkabu(fundList, pass, page, [])
+  _scrapingSimpleFromMinkabu(sheetNames[4], fundList)
+}
+
+function scrapingSimpleFromMinkabu6() {
+  const pass = '/return'
+  const page = {start:19, end:20}
+  const fundList = new Map()
+  
+  getRankingListFromMinkabu(fundList, pass, page, [])
+  _scrapingSimpleFromMinkabu(sheetNames[5], fundList)
+}
+
+function scrapingSimpleFromMinkabu7() {
+  const pass = '/return'
+  const page = {start:21, end:23}
+  const fundList = new Map()
+  
+  getRankingListFromMinkabu(fundList, pass, page, [])
+  _scrapingSimpleFromMinkabu(sheetNames[6], fundList)
+}
+
+function scrapingSimpleFromMinkabu8() {
+  const pass = '/return'
+  const page = {start:24, end:25}
+  const fundList = new Map()
+  
+  getRankingListFromMinkabu(fundList, pass, page, [])
+
   const idList = [
     '03311112', '25311177', '93311164', '32311984', '0131F122', '0131102B', '8031114C', 'AA311169', '0231802C', '0131Q154', '89313121', '89315121', '65311058', '89312121', '0231402C',
     '89314121', '0231602C', '68311003', '0231502C', '0231202C', '0331109C', '0231702C', '8931111A', '89311025', '2931116A', '0331110A', '64315021', '64311081', '0431Q169', '89311135',
@@ -106,9 +156,8 @@ function scrapingSimpleFromMinkabu4() {
     fundList.set('/fund/' + id, new Ranking('', url, termListNum, false, true))
   })
 
-  _scrapingSimpleFromMinkabu(sheetName, fundList)
+  _scrapingSimpleFromMinkabu(sheetNames[7], fundList)
 }
-
     
 function _scrapingSimpleFromMinkabu(sheetName, fundList) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
@@ -117,37 +166,24 @@ function _scrapingSimpleFromMinkabu(sheetName, fundList) {
   outputSimpleToSheet(sheet, fundList)    
 }
 
-function scrapingFromMinkabu () {
-  try {
-    console.log("start")
-    const sheetName = 'みんかぶ'
-    const pass = {return: '/return', sharp: '/sharpe_ratio'}
-    const page = {return: {start:1, end:5}, sharp: {start:1, end:1}}
-    const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）']
-    const sheet = createSheet(sheetName)
+function scrapingFromMinkabuDataSheet () {
+  console.log("start")
+  const sheetName = 'みんかぶ'
+  const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）']
+  const sheet = createSheet(sheetName)
 
-    const rankingList = new Map()
-    getRankingListFromMinkabu(rankingList, pass.return, page.return, ignoreList)
-    console.log("getRankingListFromMinkabu:return")
-    getRankingListFromMinkabu(rankingList, pass.sharp, page.sharp, ignoreList)
-    console.log("getRankingListFromMinkabu:sharpRatio")
-    getDetailFromMinkabu(rankingList)
-    console.log("getDetailFromMinkabu")
-
-    const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList)
-    console.log("analysis")
-    outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList)
-    console.log("outputToSheet")
-  } catch(e) {
-    console.error("message:" + e.message + "\nstack:" + e.stack)
-    throw e
-  }
+  const rankingList = new Map()
+  getDetailFromMinkabuDataSheet(rankingList, ignoreList)
+  console.log("getDetailFromMinkabuDataSheet")
+  const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList6)
+  console.log("analysis")
+  outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList)
+  console.log("outputToSheet")  
 }
 
 function getRankingListFromMinkabu(rankingList, targetPass, page, ignoreList) {
   const baseUrl = 'https://itf.minkabu.jp'
-  const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
-  termList.forEach(term => {
+  termList6.forEach(term => {
     for(let p=page.start; p<=page.end; p++) {
       const url = baseUrl + '/ranking' + targetPass + '?term=' + term.month + '&page=' + p
       const html = UrlFetchApp.fetch(url).getContentText()
@@ -159,7 +195,7 @@ function getRankingListFromMinkabu(rankingList, targetPass, page, ignoreList) {
         const name = result[2]
         const link = baseUrl + pass + '/risk_cont'
         const ignore = ignoreList.some(i => i === name)
-        rankingList.set(pass, new Ranking(name, link, termList.length, ignore, false))
+        rankingList.set(pass, new Ranking(name, link, termListNum, ignore, false))
       })
     }
   })
@@ -167,7 +203,6 @@ function getRankingListFromMinkabu(rankingList, targetPass, page, ignoreList) {
 
 function getDetailFromMinkabu(rankingList) {
   const sharpNum = 12 // 12番目からのspanがシャープレシオ
-  const termList = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
   console.log('getDetailFromMinkabu:' + rankingList.size)
   
   let i = 0
@@ -179,11 +214,11 @@ function getDetailFromMinkabu(rankingList) {
     if (ranking.name === '') {
       ranking.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
     }
-    ranking.returnList = termList.map(term => {
+    ranking.returnList = termList6.map(term => {
       const result = spanList[term.n].replace(/%/, '')
       return result != '-' ? Number(result) : null
     })
-    ranking.sharpList = termList.map(term => {
+    ranking.sharpList = termList6.map(term => {
       const result = spanList[sharpNum + term.n].replace(/%/, '')
       return result != '-' ? Number(result) : null
     })    
@@ -193,6 +228,33 @@ function getDetailFromMinkabu(rankingList) {
     if (i%50 === 0) {
       console.log(i)
     }
+  })
+}
+
+function getDetailFromMinkabuDataSheet(rankingList, ignoreList) { 
+  sheetNames.forEach(sheetName => {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
+    console.log(sheetName)
+    const values = sheet.getDataRange().getValues()
+    values.forEach(value => {
+      const link = value[1]
+      const name = value[3]
+      const ignore = ignoreList.some(j => j === name)
+      const ranking = new Ranking(name, link, termListNum, ignore, value[2] == 1)
+            
+      ranking.date = value[0]
+      for(let i=0; i<termListNum; i++) {
+        const r = value[5 + 3 * i]
+        const s = value[6 + 3 * i]
+        if (r !== '') {
+          ranking.returnList[i] = r
+        }
+        if (s !== '') {
+          ranking.sharpList[i] = s
+        }
+      }
+      rankingList.set(link, ranking)
+    })
   })
 }
     
@@ -206,12 +268,12 @@ function scrapingFromMorningStar() {
     const sheet = createSheet(sheetName)
 
     const rankingList = new Map()
-    const termList = [{n:0, year:1}, {n:1, year:3}, {n:2, year:5}, {n:3, year:10}]
-    getRankingListFromMorningStar(rankingList, returnPass, termList, characterCode, ignoreList)
-    getRankingListFromMorningStar(rankingList, sharpRatioPass, termList, characterCode, ignoreList)
-    getDetailFromMorningStar(rankingList, termList, characterCode)
+    const termList4 = [{n:0, year:1}, {n:1, year:3}, {n:2, year:5}, {n:3, year:10}]
+    getRankingListFromMorningStar(rankingList, returnPass, termList4, characterCode, ignoreList)
+    getRankingListFromMorningStar(rankingList, sharpRatioPass, termList4, characterCode, ignoreList)
+    getDetailFromMorningStar(rankingList, termList4, characterCode)
 
-    const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList)
+    const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList4)
     outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList)
   } catch(e) {
     console.error("message:" + e.message + "\nstack:" + e.stack)
@@ -302,7 +364,6 @@ function getStatistics(targetList) {
 
 function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList) { 
   const data = []
-  let n = 1
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
     const finalTargetList = getFinalTarget(rankingTargetList, srdList, medianList)
@@ -312,18 +373,24 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    const row = [ranking.date, ranking.link, ranking.category, ranking.name, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
+    const row = [ranking.date, ranking.link, ranking.category, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
 //    rankingTargetList.map((target, i) => {
 //     row.push('', target, ranking.returnList[i], ranking.sharpList[i])
 //    })
     data.push(row)
+  })
+  sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
+  let n = 1
+  rankingList.forEach(ranking => {
     if(ranking.ignore) {
       sheet.getRange(n, 4).setBackground('gray')
     }
+    if(ranking.isIdeco) {
+      sheet.getRange(n, 5).setBackground('yellow')
+    }
     n++
   })
-  sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
   setColors(sheet, srdList, sqrtSrdList)
 }
@@ -331,7 +398,7 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
 function outputSimpleToSheet(sheet, fundList) {
   const data = []
   fundList.forEach(fund => {
-    const row = [fund.date, fund.link, fund.isIdeco ? 1 : 0, fund.name, '']
+    const row = [fund.date, fund.link, fund.name, '']
     fund.returnList.forEach((r, i) => {
       row.push(r, fund.sharpList[i], '')
     })
@@ -350,7 +417,7 @@ function getFinalTarget(targetList, srdList, medianList) {
 
 function setColors(sheet, srdList, sqrtSrdList) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  const targetNum = 5
+  const targetNum = 6
   for(let i=targetNum; i < targetNum + 3 + srdList.length + sqrtSrdList.length; i++) {
     if (i === targetNum + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
