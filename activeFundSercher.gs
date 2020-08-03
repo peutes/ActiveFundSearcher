@@ -389,9 +389,11 @@ function getStatistics(targetList) {
     })
     return Math.sqrt(sum / (t.length - 1))
   })
+  
+  // 第九十分位数
   const medianList = targetList.map(t => {
     t = t.sort((a, b) => a - b)
-    return t[parseInt(t.length/2)]
+    return t[parseInt(t.length*9/10)]
   })
   console.log(sumList, srdList, medianList)
   return [srdList, medianList]
@@ -417,17 +419,17 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
   let n = 1
+  const targetRow = 5
   rankingList.forEach(ranking => {
     if(ranking.ignore) {
-      sheet.getRange(n, 3).setBackground('gray')
+      sheet.getRange(n, targetRow - 2).setBackground('gray')
     }
     if(ranking.isIdeco) {
-      sheet.getRange(n, 4).setBackground('yellow')
+      sheet.getRange(n, targetRow - 1).setBackground('yellow')
     }
     n++
   })
-
-  setColors(sheet, srdList, sqrtSrdList)
+  setColors(sheet, srdList, sqrtSrdList, targetRow)
 }
 
 function outputSimpleToSheet(sheet, fundList) {
@@ -450,25 +452,24 @@ function getFinalTarget(targetList, srdList, medianList) {
   return targetList.map((t, i) => (t || medianList[i]) / srdList[i])
 }
 
-function setColors(sheet, srdList, sqrtSrdList) {
+function setColors(sheet, srdList, sqrtSrdList, targetRow) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  const targetNum = 5
-  for(let i=targetNum; i < targetNum + 3 + srdList.length + sqrtSrdList.length; i++) {
-    if (i === targetNum + 1 + srdList.length) continue
+  for(let i=targetRow; i < targetRow + 3 + srdList.length + sqrtSrdList.length; i++) {
+    if (i === targetRow + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
     })
   }
-  sheet.getDataRange().sort({column: targetNum, ascending: false})
+  sheet.getDataRange().sort({column: targetRow, ascending: false})
 
-  sheet.autoResizeColumns(1, 20)
+  sheet.autoResizeColumns(1, 4)
 
   let i = 0
   const max = 10
   const white = '#ffffff' // needs RGB color
   const aqua = 'aqua'
-  const range = sheet.getRange(1, 4, sheet.getLastRow() - 1)
+  const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow() - 1)
   const rgbs = range.getBackgrounds().map(rows => {
     return rows.map(rgb => {
       if (i >= max || rgb !== white) {
