@@ -36,28 +36,28 @@ class Ranking {
 }
 
 let sheetNames = [];
-for(let i=0; i<8; i++) {
- sheetNames.push('みんかぶデータ' + (i+1))
+const minkabuDataSheetNum = 10
+for(let i=0; i<minkabuDataSheetNum; i++) {
+ sheetNames.push('みんかぶデータ' + i)
 }
+const urlSheetName = 'みんかぶURL'
 const termList6 = [{n:0, month:3}, {n:1, month:6}, {n:2, month:12}, {n:3, month:36}, {n:4, month:60}, {n:5, month:120}]
 const termListNum = 6
 
 // hook
 function onOpen() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
-  sheet.addMenu("Google App Script",  [
-    {name: 'みんかぶシンプル1', functionName: 'scrapingSimpleFromMinkabu1'},
-    {name: 'みんかぶシンプル2', functionName: 'scrapingSimpleFromMinkabu2'},
-    {name: 'みんかぶシンプル3', functionName: 'scrapingSimpleFromMinkabu3'},
-    {name: 'みんかぶシンプル4', functionName: 'scrapingSimpleFromMinkabu4'},
-    {name: 'みんかぶシンプル5', functionName: 'scrapingSimpleFromMinkabu5'},
-    {name: 'みんかぶシンプル6', functionName: 'scrapingSimpleFromMinkabu6'},
-    {name: 'みんかぶシンプル7', functionName: 'scrapingSimpleFromMinkabu7'},
-    {name: 'みんかぶシンプル8', functionName: 'scrapingSimpleFromMinkabu8'},
+  const menu = [
+    {name: 'みんかぶクリア', functionName: 'clearMinkabuData'},
+    {name: 'みんかぶURL', functionName: 'scrapingFromMinkabuURL'},
     {name: 'みんかぶスクレイピング', functionName: 'scrapingFromMinkabuDataSheet'},
     {name: 'モーニングスタースクレイピング', functionName: 'scrapingFromMorningStar'},
     {name: '自動化シート一括削除', functionName: 'deleteAutoSheet'},
-  ])
+  ]
+  for(let i=0; i<minkabuDataSheetNum; i++) {
+    menu.push({name: 'みんかぶデータ' + i, functionName: 'scrapingSimpleFromMinkabu' + i})
+  }
+  sheet.addMenu("Google App Script", menu)
 }
  
 function deleteAutoSheet() {
@@ -75,75 +75,20 @@ function deleteAutoSheet() {
   })
 }
 
-function scrapingSimpleFromMinkabu1() {
-  const pass = '/return'
-  const page = {start:1, end:6}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[0], fundList)
+function clearMinkabuData() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(urlSheetName)
+  sheet.clear()
+
+  sheetNames.forEach(name => {
+    const sheet2 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name)
+    sheet2.clear()
+  })
 }
 
-function scrapingSimpleFromMinkabu2() {
-  const pass = '/return'
-  const page = {start:7, end:9}
+function scrapingFromMinkabuURL() {
+  const pageNum = 180 // とりあえず3600件まで対応。
   const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[1], fundList)
-}
-
-function scrapingSimpleFromMinkabu3() {
-  const pass = '/return'
-  const page = {start:10, end:12}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[2], fundList)
-}
-
-function scrapingSimpleFromMinkabu4() {
-  const pass = '/return'
-  const page = {start:13, end:15}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[3], fundList)
-}
-
-function scrapingSimpleFromMinkabu5() {
-  const pass = '/return'
-  const page = {start:16, end:18}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[4], fundList)
-}
-
-function scrapingSimpleFromMinkabu6() {
-  const pass = '/return'
-  const page = {start:19, end:20}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[5], fundList)
-}
-
-function scrapingSimpleFromMinkabu7() {
-  const pass = '/return'
-  const page = {start:21, end:23}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
-  _scrapingSimpleFromMinkabu(sheetNames[6], fundList)
-}
-
-function scrapingSimpleFromMinkabu8() {
-  const pass = '/return'
-  const page = {start:24, end:25}
-  const fundList = new Map()
-  
-  getRankingListFromMinkabu(fundList, pass, page, [])
+  getRankingListFromMinkabu(fundList, pageNum)
 
   const idList = [
     '03311112', '25311177', '93311164', '32311984', '0131F122', '0131102B', '8031114C', 'AA311169', '0231802C', '0131Q154', '89313121', '89315121', '65311058', '89312121', '0231402C',
@@ -156,14 +101,84 @@ function scrapingSimpleFromMinkabu8() {
     fundList.set('/fund/' + id, new Ranking('', url, termListNum, false, true))
   })
 
-  _scrapingSimpleFromMinkabu(sheetNames[7], fundList)
-}
-    
-function _scrapingSimpleFromMinkabu(sheetName, fundList) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
+  const data = []
+  fundList.forEach(fund => {
+    data.push([fund.link, fund.isIdeco])
+  })
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(urlSheetName)
   sheet.clear()
-  getDetailFromMinkabu(fundList)
-  outputSimpleToSheet(sheet, fundList)    
+  sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
+}
+
+function scrapingSimpleFromMinkabu0() {
+  const fundList = new Map()
+  const n = 0
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu1() {
+  const n = 1
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu2() {
+  const n = 2
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu3() {
+  const n = 3
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu4() {
+  const n = 4
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu5() {
+  const n = 5
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu6() {
+  const n = 6
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu7() {
+  const n = 7
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu8() {
+  const n = 8
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
+}
+
+function scrapingSimpleFromMinkabu9() {
+  const n = 9
+  const fundList = new Map()
+  _getURLList(fundList, n)
+  _scrapingSimpleFromMinkabu(sheetNames[n], fundList)
 }
 
 function scrapingFromMinkabuDataSheet () {
@@ -181,24 +196,41 @@ function scrapingFromMinkabuDataSheet () {
   console.log("outputToSheet")  
 }
 
-function getRankingListFromMinkabu(rankingList, targetPass, page, ignoreList) {
+function _scrapingSimpleFromMinkabu(sheetName, fundList) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
+  sheet.clear()
+  getDetailFromMinkabu(fundList)
+  outputSimpleToSheet(sheet, fundList)    
+}
+
+function _getURLList(fundList, targetNum) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(urlSheetName)
+  const values = sheet.getDataRange().getValues()
+  const n = 360
+  const end = Math.min(values.length, n * (targetNum + 1))
+  for(let i=n * targetNum; i<end; i++) {
+    fundList.set(values[i][0], new Ranking('' , values[i][0], termListNum, false, values[i][1]))
+  }
+}
+
+function getRankingListFromMinkabu(rankingList, pageNum) {
   const baseUrl = 'https://itf.minkabu.jp'
-  termList6.forEach(term => {
-    for(let p=page.start; p<=page.end; p++) {
-      const url = baseUrl + '/ranking' + targetPass + '?term=' + term.month + '&page=' + p
-      const html = UrlFetchApp.fetch(url).getContentText()
-      const table = Parser.data(html).from('<table class="md_table ranking_table">').to("</table>").build()
-      const aList = Parser.data(table).from('<a class="fwb"').to("</a>").iterate()
-      aList.forEach(a => {
-        const result = a.match(/href="(.*)">(.*)/)
-        const pass = result[1]
-        const name = result[2]
-        const link = baseUrl + pass + '/risk_cont'
-        const ignore = ignoreList.some(i => i === name)
-        rankingList.set(pass, new Ranking(name, link, termListNum, ignore, false))
-      })
+  for(let p=1; p<=pageNum; p++) {
+    const url = baseUrl + '/ranking/popular?page=' + p
+    const html = UrlFetchApp.fetch(url).getContentText()
+    const table = Parser.data(html).from('<table class="md_table ranking_table">').to("</table>").build()
+    const aList = Parser.data(table).from('<a class="fwb"').to("</a>").iterate()
+    if(aList.length === 0 || aList[0] === '<!DOCTYPE htm') {
+      return
     }
-  })
+    
+    aList.forEach(a => {
+      const result = a.match(/href="(.*)">(.*)/)
+      const pass = result[1]
+      const link = baseUrl + pass + '/risk_cont'
+      rankingList.set(pass, new Ranking('', link, termListNum, false, false))        
+    })
+  }
 }
 
 function getDetailFromMinkabu(rankingList) {
@@ -211,9 +243,7 @@ function getDetailFromMinkabu(rankingList) {
     const table = Parser.data(html).from('<table class="md_table">').to('</table>').build()
     const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     
-    if (ranking.name === '') {
-      ranking.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
-    }
+    ranking.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
     ranking.returnList = termList6.map(term => {
       const result = spanList[term.n].replace(/%/, '')
       return result != '-' ? Number(result) : null
@@ -237,12 +267,17 @@ function getDetailFromMinkabuDataSheet(rankingList, ignoreList) {
     console.log(sheetName)
     const values = sheet.getDataRange().getValues()
     values.forEach(value => {
+      if (value.length === 1) {
+        return
+      }
+    
       const link = value[1]
+      const isIdeco = value[2]
       const name = value[3]
       const ignore = ignoreList.some(j => j === name)
-      const ranking = new Ranking(name, link, termListNum, ignore, value[2] == 1)
-            
+      const ranking = new Ranking(name, link, termListNum, ignore, isIdeco)      
       ranking.date = value[0]
+      
       for(let i=0; i<termListNum; i++) {
         const r = value[5 + 3 * i]
         const s = value[6 + 3 * i]
@@ -373,10 +408,10 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
-    const row = [ranking.date, ranking.link, ranking.category, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
-//    rankingTargetList.map((target, i) => {
-//     row.push('', target, ranking.returnList[i], ranking.sharpList[i])
-//    })
+    const row = [ranking.date, ranking.link, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
+    rankingTargetList.map((target, i) => {
+      row.push('', target, ranking.returnList[i], ranking.sharpList[i])
+    })
     data.push(row)
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
@@ -384,10 +419,10 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
   let n = 1
   rankingList.forEach(ranking => {
     if(ranking.ignore) {
-      sheet.getRange(n, 4).setBackground('gray')
+      sheet.getRange(n, 3).setBackground('gray')
     }
     if(ranking.isIdeco) {
-      sheet.getRange(n, 5).setBackground('yellow')
+      sheet.getRange(n, 4).setBackground('yellow')
     }
     n++
   })
@@ -398,7 +433,7 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
 function outputSimpleToSheet(sheet, fundList) {
   const data = []
   fundList.forEach(fund => {
-    const row = [fund.date, fund.link, fund.name, '']
+    const row = [fund.date, fund.link, fund.isIdeco, fund.name, '']
     fund.returnList.forEach((r, i) => {
       row.push(r, fund.sharpList[i], '')
     })
@@ -417,7 +452,7 @@ function getFinalTarget(targetList, srdList, medianList) {
 
 function setColors(sheet, srdList, sqrtSrdList) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  const targetNum = 6
+  const targetNum = 5
   for(let i=targetNum; i < targetNum + 3 + srdList.length + sqrtSrdList.length; i++) {
     if (i === targetNum + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
@@ -426,9 +461,8 @@ function setColors(sheet, srdList, sqrtSrdList) {
     })
   }
   sheet.getDataRange().sort({column: targetNum, ascending: false})
-  
-  sheet.autoResizeColumn(3)
-  sheet.autoResizeColumn(4)
+
+  sheet.autoResizeColumns(1, 20)
 
   let i = 0
   const max = 10
