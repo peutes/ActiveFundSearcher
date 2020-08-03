@@ -480,4 +480,5 @@ function setColors(sheet, srdList, sqrtSrdList, targetRow) {
     })
   })
   range.setBackgrounds(rgbs)
+  range.setFontWeight("bold")
 }
