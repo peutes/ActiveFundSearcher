@@ -15,8 +15,9 @@ class Ranking {
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       let m = Math.abs(r) * this.sharpList[i]
-      if (length === 6 && i === 0) {
-        m = Math.pow(Math.abs(m), 1/2) * (this.sharpList[i] > 0 ? 1 : -1)
+      if(length === 6) {
+        const e = i === 0 ? 1/2 : 1
+        m = Math.pow(Math.abs(m), e) * (this.sharpList[i] > 0 ? 1 : -1)
       }
       return r != null ? m : null
     })
@@ -27,8 +28,9 @@ class Ranking {
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
       let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
-      if (length === 6 && i === 0) {
-        m = Math.pow(Math.abs(m), 1/2) * (this.sharpList[i] > 0 ? 1 : -1)
+      if(length === 6) {
+        const e = i === 0 ? 1/2 : 1
+        m = Math.pow(Math.abs(m), e) * (this.sharpList[i] > 0 ? 1 : -1)
       }
       return r != null ? m : null
     })
@@ -390,10 +392,9 @@ function getStatistics(targetList) {
     return Math.sqrt(sum / (t.length - 1))
   })
   
-  // 第九十分位数
   const medianList = targetList.map(t => {
     t = t.sort((a, b) => a - b)
-    return t[parseInt(t.length*9/10)]
+    return t[parseInt(t.length/2)]
   })
   console.log(sumList, srdList, medianList)
   return [srdList, medianList]
@@ -429,10 +430,10 @@ function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqr
     }
     n++
   })
+  
   setColors(sheet, srdList, sqrtSrdList, targetRow)
-
-  const range = sheet.getRange(1, targetRow, sheet.getLastRow() - 1)
-  range.setFontWeight("bold")
+  sheet.getRange(1, targetRow, sheet.getLastRow() - 1).setFontWeight("bold")
+  sheet.autoResizeColumns(1, 4)
 }
 
 function outputSimpleToSheet(sheet, fundList) {
@@ -465,8 +466,6 @@ function setColors(sheet, srdList, sqrtSrdList, targetRow) {
     })
   }
   sheet.getDataRange().sort({column: targetRow, ascending: false})
-
-  sheet.autoResizeColumns(1, 4)
 
   let i = 0
   const max = 10
