@@ -14,10 +14,11 @@ class Ranking {
     const length = this.returnList.length
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = Math.abs(r) * this.sharpList[i]
-      if(length === 6) {
-        const e = i === 0 ? 1/2 : 1
-        m = Math.pow(Math.abs(m), e) * (this.sharpList[i] > 0 ? 1 : -1)
+      let m = this.sharpList[i]
+      if(length !== 6 || i !== 0) {
+        m *= Math.abs(r)
+      } else {
+        m *= Math.sqrt(Math.abs(r))
       }
       return r != null ? m : null
     })
@@ -27,10 +28,11 @@ class Ranking {
     const length = this.returnList.length
     return this.returnList.map((r, i) => {
       // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
-      if(length === 6) {
-        const e = i === 0 ? 1/2 : 1
-        m = Math.pow(Math.abs(m), e) * (this.sharpList[i] > 0 ? 1 : -1)
+      let m = this.sharpList[i]
+      if(length !== 6 || i !== 0) {
+        m *= Math.sqrt(Math.abs(r))
+      } else {
+        m *= Math.sqrt(Math.sqrt(Math.abs(r)))
       }
       return r != null ? m : null
     })
@@ -71,7 +73,7 @@ function deleteAutoSheet() {
   })
   
   spreadsheet.getSheets().forEach((sheet, i) => {
-    if (i >= ignoreSheet.length) {
+    if(i >= ignoreSheet.length) {
       spreadsheet.deleteSheet(sheet)
     }
   })
@@ -257,7 +259,7 @@ function getDetailFromMinkabu(rankingList) {
     ranking.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
     i++
-    if (i%50 === 0) {
+    if(i%50 === 0) {
       console.log(i)
     }
   })
@@ -269,7 +271,7 @@ function getDetailFromMinkabuDataSheet(rankingList, ignoreList) {
     console.log(sheetName)
     const values = sheet.getDataRange().getValues()
     values.forEach(value => {
-      if (value.length === 1) {
+      if(value.length === 1) {
         return
       }
     
@@ -283,10 +285,10 @@ function getDetailFromMinkabuDataSheet(rankingList, ignoreList) {
       for(let i=0; i<termListNum; i++) {
         const r = value[5 + 3 * i]
         const s = value[6 + 3 * i]
-        if (r !== '') {
+        if(r !== '') {
           ranking.returnList[i] = r
         }
-        if (s !== '') {
+        if(s !== '') {
           ranking.sharpList[i] = s
         }
       }
@@ -332,7 +334,7 @@ function getRankingListFromMorningStar(rankingList, targetPass, termList, charac
     const date = Parser.data(html).from('<span class="ptdate">').to('</span>').build()
     const category = Parser.data(html).from('<td class="fcate">').to('</td>').build()
     trList.forEach((tr, i) => {
-      if (i === 0) return // unknown garbage
+      if(i === 0) return // unknown garbage
   
       const name = Parser.data(tr).from('target="_blank" >').to('</a>').build()
       const link = Parser.data(tr).from('<a\ href="').to('"').build()
@@ -459,7 +461,7 @@ function getFinalTarget(targetList, srdList, medianList) {
 function setColors(sheet, srdList, sqrtSrdList, targetRow) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
   for(let i=targetRow; i < targetRow + 3 + srdList.length + sqrtSrdList.length; i++) {
-    if (i === targetRow + 1 + srdList.length) continue
+    if(i === targetRow + 1 + srdList.length) continue
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
@@ -474,7 +476,7 @@ function setColors(sheet, srdList, sqrtSrdList, targetRow) {
   const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow() - 1)
   const rgbs = range.getBackgrounds().map(rows => {
     return rows.map(rgb => {
-      if (i >= max || rgb !== white) {
+      if(i >= max || rgb !== white) {
         return rgb
       }
       i++;
