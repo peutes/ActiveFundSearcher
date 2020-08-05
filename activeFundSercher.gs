@@ -194,9 +194,9 @@ function scrapingFromMinkabuDataSheet () {
   const rankingList = new Map()
   getDetailFromMinkabuDataSheet(rankingList, ignoreList)
   console.log("getDetailFromMinkabuDataSheet")
-  const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList6)
+  const [srdList, aveList, sqrtSrdList, sqrtAveList] = analysis(rankingList, termList6)
   console.log("analysis")
-  outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList)
+  outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList)
   console.log("outputToSheet")  
 }
 
@@ -312,8 +312,8 @@ function scrapingFromMorningStar() {
     getRankingListFromMorningStar(rankingList, sharpRatioPass, termList4, characterCode, ignoreList)
     getDetailFromMorningStar(rankingList, termList4, characterCode)
 
-    const [srdList, medianList, sqrtSrdList, sqrtMedianList] = analysis(rankingList, termList4)
-    outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList)
+    const [srdList, aveList, sqrtSrdList, sqrtAveList] = analysis(rankingList, termList4)
+    outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList)
   } catch(e) {
     console.error("message:" + e.message + "\nstack:" + e.stack)
     throw e
@@ -378,9 +378,9 @@ function analysis(rankingList, termList) {
   targetList = targetList.map(tr => tr.filter(t => t != null))
   sqrtTargetList = sqrtTargetList.map(tr => tr.filter(t => t != null))
   
-  const [srdList, medianList] = getStatistics(targetList)
-  const [sqrtSrdList, sqrtMedianList] = getStatistics(sqrtTargetList)
-  return [srdList, medianList, sqrtSrdList, sqrtMedianList]
+  const [srdList, aveList] = getStatistics(targetList)
+  const [sqrtSrdList, sqrtAveList] = getStatistics(sqrtTargetList)
+  return [srdList, aveList, sqrtSrdList, sqrtAveList]
 }
 
 function getStatistics(targetList) {
@@ -394,23 +394,23 @@ function getStatistics(targetList) {
     return Math.sqrt(sum / (t.length - 1))
   })
   
-  const medianList = targetList.map(t => {
-    t = t.sort((a, b) => a - b)
-    return t[parseInt(t.length/2)]
-  })
-  console.log(sumList, srdList, medianList)
-  return [srdList, medianList]
+//  const medianList = targetList.map(t => {
+//    t = t.sort((a, b) => a - b)
+//    return t[parseInt(t.length/2)]
+//  })
+  console.log(sumList, srdList, aveList)
+  return [srdList, aveList]
 }1
 
-function outputToSheet(sheet, rankingList, srdList, medianList, sqrtSrdList, sqrtMedianList) { 
+function outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList) { 
   const data = []
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
-    const finalTargetList = getFinalTarget(rankingTargetList, srdList, medianList)
+    const finalTargetList = getFinalTarget(rankingTargetList, srdList, aveList)
     const finalResult = finalTargetList.reduce((acc, v) => acc + v)
 
     const rankingSqrtTargetList = ranking.sqrtTargetList()
-    const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedianList)
+    const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtAveList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
 
     const row = [ranking.date, ranking.link, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
@@ -448,14 +448,11 @@ function outputSimpleToSheet(sheet, fundList) {
     data.push(row)
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-
-  data[0].forEach((_, i) => {
-    sheet.autoResizeColumn(i + 1)
-  })
+  sheet.autoResizeColumns(1, 4)
 }
 
-function getFinalTarget(targetList, srdList, medianList) {
-  return targetList.map((t, i) => (t || medianList[i]) / srdList[i])
+function getFinalTarget(targetList, srdList, aveList) {
+  return targetList.map((t, i) => (t || aveList[i]) / srdList[i])
 }
 
 function setColors(sheet, srdList, sqrtSrdList, targetRow) {
