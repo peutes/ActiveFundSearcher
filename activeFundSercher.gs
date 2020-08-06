@@ -194,9 +194,9 @@ function scrapingFromMinkabuDataSheet () {
   const rankingList = new Map()
   getDetailFromMinkabuDataSheet(rankingList, ignoreList)
   console.log("getDetailFromMinkabuDataSheet")
-  const [srdList, aveList, sqrtSrdList, sqrtAveList] = analysis(rankingList, termList6)
+  const [srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2] = analysis(rankingList, termList6)
   console.log("analysis")
-  outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList)
+  outputToSheet(sheet, rankingList, srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2)
   console.log("outputToSheet")  
 }
 
@@ -312,8 +312,8 @@ function scrapingFromMorningStar() {
     getRankingListFromMorningStar(rankingList, sharpRatioPass, termList4, characterCode, ignoreList)
     getDetailFromMorningStar(rankingList, termList4, characterCode)
 
-    const [srdList, aveList, sqrtSrdList, sqrtAveList] = analysis(rankingList, termList4)
-    outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList)
+    const [srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2] = analysis(rankingList, termList4)
+    outputToSheet(sheet, rankingList, srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2)
   } catch(e) {
     console.error("message:" + e.message + "\nstack:" + e.stack)
     throw e
@@ -378,9 +378,9 @@ function analysis(rankingList, termList) {
   targetList = targetList.map(tr => tr.filter(t => t != null))
   sqrtTargetList = sqrtTargetList.map(tr => tr.filter(t => t != null))
   
-  const [srdList, aveList] = getStatistics(targetList)
-  const [sqrtSrdList, sqrtAveList] = getStatistics(sqrtTargetList)
-  return [srdList, aveList, sqrtSrdList, sqrtAveList]
+  const [srdList, medList, medList2] = getStatistics(targetList)
+  const [sqrtSrdList, sqrtMedList, sqrtMedList2] = getStatistics(sqrtTargetList)
+  return [srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2]
 }
 
 function getStatistics(targetList) {
@@ -393,27 +393,38 @@ function getStatistics(targetList) {
     })
     return Math.sqrt(sum / (t.length - 1))
   })
+
+  // 上位10%
+  const medList = targetList.map(t => {
+    t = t.sort((a, b) => a - b)
+    return t[parseInt(t.length*9/10)]
+  })
   
-//  const medianList = targetList.map(t => {
-//    t = t.sort((a, b) => a - b)
-//    return t[parseInt(t.length/2)]
-//  })
-  console.log(sumList, srdList, aveList)
-  return [srdList, aveList]
+  // 上位25%  iDeCo用 #TODO
+  const medList2 = targetList.map(t => {
+    t = t.sort((a, b) => a - b)
+    return t[parseInt(t.length/2)]
+  })
+  console.log(sumList, srdList, aveList, medList, medList2)
+  return [srdList, medList, medList2]
 }1
 
-function outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAveList) { 
+function outputToSheet(sheet, rankingList, srdList, medList, medList2, sqrtSrdList, sqrtMedList, sqrtMedList2) { 
   const data = []
   rankingList.forEach(ranking => {
     const rankingTargetList = ranking.targetList()
-    const finalTargetList = getFinalTarget(rankingTargetList, srdList, aveList)
+    const finalTargetList = getFinalTarget(rankingTargetList, srdList, medList)
     const finalResult = finalTargetList.reduce((acc, v) => acc + v)
+    const finalTargetList2 = getFinalTarget(rankingTargetList, srdList, medList2)
+    const finalResult2 = finalTargetList2.reduce((acc, v) => acc + v)
 
     const rankingSqrtTargetList = ranking.sqrtTargetList()
-    const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtAveList)
+    const finalSqrtTargetList = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedList)
     const finalSqrtResult = finalSqrtTargetList.reduce((acc, v) => acc + v)
+//    const finalSqrtTargetList2 = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedList2)
+//    const finalSqrtResult2 = finalSqrtTargetList2.reduce((acc, v) => acc + v)
 
-    const row = [ranking.date, ranking.link, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList].flat()
+    const row = [ranking.date, ranking.link, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalResult2, finalTargetList2, '', finalSqrtResult, finalSqrtTargetList, ''].flat()
     rankingTargetList.map((target, i) => {
       row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
@@ -433,7 +444,7 @@ function outputToSheet(sheet, rankingList, srdList, aveList, sqrtSrdList, sqrtAv
     n++
   })
   
-  setColors(sheet, srdList, sqrtSrdList, targetRow)
+  setColors(sheet, targetRow, 3)
   sheet.getRange(1, targetRow, sheet.getLastRow() - 1).setFontWeight("bold")
   sheet.autoResizeColumns(1, 4)
 }
@@ -451,27 +462,50 @@ function outputSimpleToSheet(sheet, fundList) {
   sheet.autoResizeColumns(1, 4)
 }
 
-function getFinalTarget(targetList, srdList, aveList) {
-  return targetList.map((t, i) => (t || aveList[i]) / srdList[i])
+function getFinalTarget(targetList, srdList, medList) {
+  return targetList.map((t, i) => (t || medList[i]) / srdList[i])
 }
 
-function setColors(sheet, srdList, sqrtSrdList, targetRow) {
+function setColors(sheet, targetRow, listNum) {
   const colorList = ['lime', 'yellow', 'orange', 'pink']
-  for(let i=targetRow; i < targetRow + 3 + srdList.length + sqrtSrdList.length; i++) {
-    if(i === targetRow + 1 + srdList.length) continue
+  for(let i=targetRow; i < targetRow + listNum*(2 + termListNum) - 1; i++) {
+    let c = false
+    for(let j=1; j<listNum; j++) {
+      if(i === targetRow + j*(termListNum + 2) - 1) {
+        c = true
+      }
+    }
+    if (c) {
+      continue
+    }
+    
     sheet.getDataRange().sort({column: i, ascending: false})
     colorList.forEach((color, m) => {
       sheet.getRange(1 + 5*m, i, 5).setBackground(color)
     })
   }
-  sheet.getDataRange().sort({column: targetRow, ascending: false})
+  
+  const allRange = sheet.getDataRange()
+  
+  const idecoRankRow = targetRow + 2 + termListNum
+  allRange.sort({column: idecoRankRow, ascending: false})
+  allRange.sort({column: 4, ascending: false})
+  const idecoRange = sheet.getRange(1, idecoRankRow, sheet.getLastRow() - 1)
+  const idecoRgbs = setAquaRankColor(5, idecoRange)
+  idecoRange.setBackgrounds(idecoRgbs)
+  
+  allRange.sort({column: targetRow, ascending: false})
+  const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow() - 1)
+  const rgbs = setAquaRankColor(10, range)
+  range.setBackgrounds(rgbs)
+}
 
-  let i = 0
-  const max = 10
+function setAquaRankColor(max, range) {
   const white = '#ffffff' // needs RGB color
   const aqua = 'aqua'
-  const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow() - 1)
-  const rgbs = range.getBackgrounds().map(rows => {
+  let i = 0
+
+  return range.getBackgrounds().map(rows => {
     return rows.map(rgb => {
       if(i >= max || rgb !== white) {
         return rgb
@@ -480,5 +514,4 @@ function setColors(sheet, srdList, sqrtSrdList, targetRow) {
       return aqua
     })
   })
-  range.setBackgrounds(rgbs)
 }
