@@ -17,9 +17,9 @@ class Ranking {
       let m = Math.abs(r) * this.sharpList[i]
       if(length === 6) {
         if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 1/5)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 0.2) // 0.25 は大きい
         } else if(i <= 2) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 4/5)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 0.8) // 採用（0.8 and 上位 3%）  or 0.85 and 上位5%
         }
       }
       return r != null ? m : null
@@ -33,9 +33,9 @@ class Ranking {
       let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
       if(length === 6) {
         if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 1/5)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 0.2)
         } else if(i <= 2) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 4/5)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 0.8)
         }
       }
       return r != null ? m : null
