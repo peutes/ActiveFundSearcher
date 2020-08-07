@@ -17,9 +17,9 @@ class Ranking {
       let m = Math.abs(r) * this.sharpList[i]
       if(length === 6) {
         if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 1/4)
-//        } else if(i === 1) {
-//          m = Math.sign(m) * Math.pow(Math.abs(m), 3/4)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 1/5)
+        } else if(i <= 2) {
+          m = Math.sign(m) * Math.pow(Math.abs(m), 4/5)
         }
       }
       return r != null ? m : null
@@ -33,9 +33,9 @@ class Ranking {
       let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
       if(length === 6) {
         if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 1/4)
-//        } else if(i === 1) {
-//          m = Math.sign(m) * Math.pow(Math.abs(m), 3/4)
+          m = Math.sign(m) * Math.pow(Math.abs(m), 1/5)
+        } else if(i <= 2) {
+          m = Math.sign(m) * Math.pow(Math.abs(m), 4/5)
         }
       }
       return r != null ? m : null
@@ -404,13 +404,14 @@ function getStatistics(targetList) {
     return Math.sqrt(sum / (t.length - 1))
   })
 
-  // 上位10%
+  // 上位3%
+  const top = 3
   const medList = targetList.map(t => {
     t = t.sort((a, b) => a - b)
-    return t[parseInt(t.length*9/10)]
+    return t[parseInt(t.length*(100 - top)/100)]
   })
   
-  // 上位25%  iDeCo用 #TODO
+  // 上位50%  iDeCo用 #TODO
   const medList2 = targetList.map(t => {
     t = t.sort((a, b) => a - b)
     return t[parseInt(t.length/2)]
