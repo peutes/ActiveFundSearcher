@@ -13,12 +13,14 @@ class Ranking {
   targetList() {
     const length = this.returnList.length
     return this.returnList.map((r, i) => {
-      // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = this.sharpList[i]
-      if(length !== 6 || i !== 0) {
-        m *= Math.abs(r)
-      } else {
-        m *= Math.sqrt(Math.abs(r))
+      // リスクが低すぎるため、期間3ヶ月の評価をさげる
+      let m = Math.abs(r) * this.sharpList[i]
+      if(length === 6) {
+        if(i === 0) {
+          m = Math.sign(m) * Math.pow(Math.abs(m), 1/4)
+//        } else if(i === 1) {
+//          m = Math.sign(m) * Math.pow(Math.abs(m), 3/4)
+        }
       }
       return r != null ? m : null
     })
@@ -27,12 +29,14 @@ class Ranking {
   sqrtTargetList() {
     const length = this.returnList.length
     return this.returnList.map((r, i) => {
-      // みんかぶ暫定対応。リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = this.sharpList[i]
-      if(length !== 6 || i !== 0) {
-        m *= Math.sqrt(Math.abs(r))
-      } else {
-        m *= Math.sqrt(Math.sqrt(Math.abs(r)))
+      // リスクが低すぎるため、期間3ヶ月の評価をさげる
+      let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
+      if(length === 6) {
+        if(i === 0) {
+          m = Math.sign(m) * Math.pow(Math.abs(m), 1/4)
+//        } else if(i === 1) {
+//          m = Math.sign(m) * Math.pow(Math.abs(m), 3/4)
+        }
       }
       return r != null ? m : null
     })
@@ -188,7 +192,13 @@ function scrapingSimpleFromMinkabu9() {
 function scrapingFromMinkabuDataSheet () {
   console.log("start")
   const sheetName = 'みんかぶ'
-  const ignoreList = ['ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）']
+  const ignoreList = [
+    'ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）',
+    '野村世界業種別投資シリーズ（世界半導体株投資）', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ａコース', 'ＵＢＳ中国株式ファンド', 'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）',
+    '野村ＳＮＳ関連株投資Ａコース', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド', 'グローバル全生物ゲノム株式ファンド（１年決算型）', 'テトラ・エクイティ', 'ブラックロック・ゴールド・メタル・オープンＡコース',
+    'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', '野村米国ブランド株投資（円コース）毎月分配型', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ｂコース',
+    '野村ＳＮＳ関連株投資Ｂコース', '野村米国ブランド株投資（円コース）年２回決算型', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）', 'ＵＢＳ次世代テクノロジー・ファンド'
+  ]
   const sheet = createSheet(sheetName)
 
   const rankingList = new Map()
@@ -255,7 +265,7 @@ function getDetailFromMinkabu(rankingList) {
     ranking.sharpList = termList6.map(term => {
       const result = spanList[sharpNum + term.n].replace(/%/, '')
       return result != '-' ? Number(result) : null
-    })    
+    })
     ranking.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
     i++
@@ -424,7 +434,7 @@ function outputToSheet(sheet, rankingList, srdList, medList, medList2, sqrtSrdLi
 //    const finalSqrtTargetList2 = getFinalTarget(rankingSqrtTargetList, sqrtSrdList, sqrtMedList2)
 //    const finalSqrtResult2 = finalSqrtTargetList2.reduce((acc, v) => acc + v)
 
-    const row = [ranking.date, ranking.link, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalResult2, finalTargetList2, '', finalSqrtResult, finalSqrtTargetList, ''].flat()
+    const row = [ranking.link, ranking.date, ranking.name, ranking.isIdeco, finalResult, finalTargetList, '', finalSqrtResult, finalSqrtTargetList,　'', finalResult2, finalTargetList2, ''].flat()
     rankingTargetList.map((target, i) => {
       row.push('', target, ranking.returnList[i], ranking.sharpList[i])
     })
@@ -445,7 +455,7 @@ function outputToSheet(sheet, rankingList, srdList, medList, medList2, sqrtSrdLi
   })
   
   setColors(sheet, targetRow, 3)
-  sheet.getRange(1, targetRow, sheet.getLastRow() - 1).setFontWeight("bold")
+  sheet.getRange(1, targetRow, sheet.getLastRow()).setFontWeight("bold")
   sheet.autoResizeColumns(1, 4)
 }
 
@@ -459,15 +469,15 @@ function outputSimpleToSheet(sheet, fundList) {
     data.push(row)
   })
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-  sheet.autoResizeColumns(1, 4)
+  sheet.autoResizeColumns(2, 4)
 }
 
 function getFinalTarget(targetList, srdList, medList) {
-  return targetList.map((t, i) => (t || medList[i]) / srdList[i])
+  return targetList.map((t, i) => ((t || medList[i]) / srdList[i]) || 0)
 }
 
 function setColors(sheet, targetRow, listNum) {
-  const colorList = ['lime', 'yellow', 'orange', 'pink']
+  const colorList = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver']
   for(let i=targetRow; i < targetRow + listNum*(2 + termListNum) - 1; i++) {
     let c = false
     for(let j=1; j<listNum; j++) {
@@ -487,15 +497,15 @@ function setColors(sheet, targetRow, listNum) {
   
   const allRange = sheet.getDataRange()
   
-  const idecoRankRow = targetRow + 2 + termListNum
+  const idecoRankRow = targetRow + 2*(2 + termListNum)
   allRange.sort({column: idecoRankRow, ascending: false})
   allRange.sort({column: 4, ascending: false})
-  const idecoRange = sheet.getRange(1, idecoRankRow, sheet.getLastRow() - 1)
+  const idecoRange = sheet.getRange(1, idecoRankRow, sheet.getLastRow())
   const idecoRgbs = setAquaRankColor(5, idecoRange)
   idecoRange.setBackgrounds(idecoRgbs)
   
   allRange.sort({column: targetRow, ascending: false})
-  const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow() - 1)
+  const range = sheet.getRange(1, targetRow - 2, sheet.getLastRow())
   const rgbs = setAquaRankColor(10, range)
   range.setBackgrounds(rgbs)
 }
