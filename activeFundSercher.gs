@@ -8,38 +8,35 @@ class Ranking {
     this.date = null
     this.category = null
     this.isIdeco = isIdeco
+    
+    // 採用（0.8 and 上位 3%）  or 0.85 and 上位5%
+    this.powExp = [0.2, 0.8, 1]
   }
   
   targetList() {
-    const length = this.returnList.length
     return this.returnList.map((r, i) => {
-      // リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = Math.abs(r) * this.sharpList[i]
-      if(length === 6) {
-        if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 0.2) // 0.25 は大きい
-        } else if(i <= 2) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 0.8) // 採用（0.8 and 上位 3%）  or 0.85 and 上位5%
-        }
-      }
-      return r != null ? m : null
+      return this._calcTargetList(r, Math.abs(r), i)
     })
   }
   
   sqrtTargetList() {
-    const length = this.returnList.length
     return this.returnList.map((r, i) => {
-      // リスクが低すぎるため、期間3ヶ月の評価をさげる
-      let m = Math.sqrt(Math.abs(r)) * this.sharpList[i]
-      if(length === 6) {
-        if(i === 0) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 0.2)
-        } else if(i <= 2) {
-          m = Math.sign(m) * Math.pow(Math.abs(m), 0.8)
-        }
-      }
-      return r != null ? m : null
+      return this._calcTargetList(r, Math.sqrt(Math.abs(r)), i)
     })
+  }
+  
+  _calcTargetList(r, targetR, i) {
+    let m = targetR * this.sharpList[i]
+    if(this.returnList.length === 6) {
+      let n = 2
+      if(i === 0) {
+        n = 0
+      } else if(i <= 2) {
+        n = 1
+      }
+      m = Math.sign(m) * Math.pow(Math.abs(m), this.powExp[n])
+    }
+    return r != null ? m : null
   }
 }
 
@@ -404,11 +401,9 @@ function getStatistics(targetList) {
     return Math.sqrt(sum / (t.length - 1))
   })
 
-  // 上位3%
-  const top = 3
-  const medList = targetList.map(t => {
-    t = t.sort((a, b) => a - b)
-    return t[parseInt(t.length*(100 - top)/100)]
+  // 信頼区間95%数値
+  const medList = targetList.map((t, i) => {
+    return aveList[i] + 2*srdList[i]
   })
   
   // 上位50%  iDeCo用 #TODO
