@@ -1,3 +1,7 @@
+
+const termSize = 6
+const scoresSize = 3
+
 class SheetInfo {
   constructor() {
     this.fundsSheetNum = 10
@@ -18,19 +22,18 @@ class Fund {
   constructor(link, isIdeco) {
     this.link = link
     this.isIdeco = isIdeco
-
-    this.termNum = 6
+    
     this.date = null
     this.name = null
     this.ignore = false
-    this.returns = new Array(this.termNum).fill(null)
-    this.sharps = new Array(this.termNum).fill(null)
-    this.scores1 = new Array(this.termNum).fill(null)
-    this.scores2 = new Array(this.termNum).fill(null)
-    this.scores3 = new Array(this.termNum).fill(null)
-    this.totalScore1 = 0
-    this.totalScore2 = 0
-    this.totalScore3 = 0
+    this.returns = new Array(termSize).fill(null)
+    this.sharps = new Array(termSize).fill(null)
+
+    this.scores = new Array(scoresSize)
+    for(let i=0; i<scoresSize; i++) {
+      this.scores[i] = new Array(termSize).fill(null)
+    }
+    this.totalScores = new Array(scoresSize).fill(0)
   }
   
 //  sqrtTarget() {
@@ -144,7 +147,7 @@ class FundsScraper {
       const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     
       fund.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
-      for(let i=0; i<fund.termNum; i++) {
+      for(let i=0; i<termSize; i++) {
         const result1 = spanList[i].replace(/%/, '')
         const result2 = spanList[sharpNum + i].replace(/%/, '')
         fund.returns[i] = result1 != '-' ? Number(result1) : null
@@ -191,7 +194,6 @@ class FundsScoreCalculator {
       'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））', 'ＵＳテクノロジー・イノベーターズ・ファンド', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）',
       'グローバル・ハイクオリティ成長株式ファンド（年２回決算型）（限定為替ヘッジ）（未来の世界（年２回決算型））', '野村米国ブランド株投資（米ドルコース）毎月分配型'
     ]
-    this._termNum = null
   }
       
   calc() {
@@ -213,14 +215,10 @@ class FundsScoreCalculator {
         fund.date = value[0]
         fund.name = value[3]
         fund.ignore = this._ignoreList.some(i => i === fund.name)
-      
-        if (this._termNum === null) {
-          this._termNum = fund.termNum
-        }
         
-        for(let i=0; i<this._termNum; i++) {
-          const r = value[3*i + this._termNum - 1]
-          const s = value[3*i + this._termNum]
+        for(let i=0; i<termSize; i++) {
+          const r = value[3*i + termSize - 1]
+          const s = value[3*i + termSize]
           if(r !== '') {
             fund.returns[i] = r
           }
@@ -234,36 +232,42 @@ class FundsScoreCalculator {
   }
   
   _calcScores() {
-//    const powExp = [0.21, 0.69, 0.69, 0.89, 0.89, 1.11]
-    const powExp = [1, 1, 1, 1, 1, 1]
     this._funds.forEach(fund => {
-      fund.scores1 = fund.scores1.map((_, i) => {
-        if(fund.returns[i] === null || fund.sharps[i] === null) {
-          return null
+      fund.returns.forEach((r, i) => {
+        if(r === null || fund.sharps[i] === null) {
+          return
         }
-      
-        return Math.sign(fund.returns[i]) * Math.abs(fund.returns[i] * fund.sharps[i])
-//        return Math.sign(fund.returns[i]) * Math.sqrt(Math.abs(fund.returns[i] * fund.sharps[i]))
-//        return Math.sign(fund.returns[i]) * Math.pow(Math.abs(base), powExp[i]
+        fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
+        fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
+        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
-    })      
-    
-    let scoresList1 = []
-    this._funds.forEach(fund => {
-      scoresList1.push(fund.scores1)
-    })      
-    scoresList1 = scoresList1[0].map((_, i) => scoresList1.map(r => r[i]).filter(Boolean)) // transpose
-
-    const [aveList, srdList, medList, medList2, maxList, minList] = this._analysis(scoresList1)
-    this._funds.forEach(fund => {
-//      fund.scores1 = this._standardize(fund.scores1, aveList, srdList, medList)
-      fund.scores1 = this._normalize(fund.scores1, maxList, minList)
-      fund.scores1[0] *= 0.5
-      fund.totalScore1 = fund.scores1.reduce((acc, score) => acc + score)
     })
+
+    for(let n=0; n<scoresSize; n++) {
+      const scoresList = []
+      this._funds.forEach(fund => {
+        scoresList.push(fund.scores[n])
+      })
+
+      const [aveList, srdList, initList, initList2, maxList, minList] = this._analysis(scoresList)
+      console.log(aveList, srdList, initList, initList2, maxList, minList)
+      this._funds.forEach(fund => {
+        if (n !== 2) {
+          const tmp = fund.scores[n].map((s, i) => s || initList[i])
+          fund.scores[n] = this._normalize(tmp, maxList, minList)
+        } else {
+          const tmp = fund.scores[n].map((s, i) => s || initList2[i])
+          fund.scores[n] = this._normalize(tmp, maxList, minList).map(s => fund.isIdeco ? s : 0)
+        }
+        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score)      
+      })
+    }
   }
 
   _analysis(scoresList) {
+    scoresList = scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
+
+    scoresList.map(scores => console.log(scores.length))
     const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v))
     const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
     const srdList = scoresList.map((scores, i) => {
@@ -274,33 +278,24 @@ class FundsScoreCalculator {
       return Math.sqrt(sum / (scores.length - 1))
     })
   
-    const medList = scoresList.map((scores, i) => {
-      const n = i === 0 ? 1 : 2
-      return aveList[i] + n * srdList[i]
-//    scores = scores.sort((a, b) => a - b)
-//    return scores[parseInt(scores.length*96/100)]
-    })
+    const initList = scoresList.map((scores, i) => aveList[i] + 2 * srdList[i])
   
     // 上位50%  iDeCo用 #TODO
-    const medList2 = scoresList.map((scores, i) => {
+    const initList2 = scoresList.map((scores, i) => {
       scores = scores.sort((a, b) => a - b)
       return scores[parseInt(scores.length/2)]
     })
     
-    const maxList = scoresList.map(scores => Math.max(...scores))
-    const minList = scoresList.map(scores => Math.min(...scores))
+    const maxList = scoresList.map(s => Math.max(...s))
+    const minList = scoresList.map(s => Math.min(...s))
     
-    console.log(aveList, srdList, medList, medList2)
-    return [aveList, srdList, medList, medList2, maxList, minList]
+    console.log(aveList, srdList, initList, initList2)
+    return [aveList, srdList, initList, initList2, maxList, minList]
   }
 
-//  _standardize(scores, aveList, srdList, medList) {
-//    return scores.map((score, i) => ((score || medList[i]) - aveList[i]) / srdList[i])
-//  }
-
   _normalize(scores, maxList, minList) {
-    const d = 0.5
-    return scores.map((score, i) => score !== null ? (score - minList[i]) / (maxList[i] - minList[i]) : d)
+    // i=0（3ヶ月）のスコアはリスクが大きいため減らす
+    return scores.map((score, i) => 20 * (i === 0 ? 0.5 : 1) * (score - minList[i]) / (maxList[i] - minList[i]))
   }
 
   _output() { 
@@ -308,9 +303,11 @@ class FundsScoreCalculator {
     const sheet = spreadsheet.insertSheet(this._sheetInfo.getScoreSheetName(), 0)
 
     const data = []
-    const scoreNum = 1
     this._funds.forEach(fund => {
-      const row = [fund.link, fund.date, fund.name, fund.isIdeco, fund.totalScore1, fund.scores1, ''].flat()
+      const row = [fund.link, fund.date, fund.name, fund.isIdeco]
+      for(let i=0; i<scoresSize; i++) {
+        row.push(fund.totalScores[i], ...(fund.scores[i]), '')
+      }
       fund.returns.forEach((r, i) => {
         row.push('', r, fund.sharps[i])
       })
@@ -332,17 +329,17 @@ class FundsScoreCalculator {
       n++
     })
   
-    this._setColors(sheet, totalScoreRow, nameRow, scoreNum)
+    this._setColors(sheet, totalScoreRow, nameRow)
     sheet.getRange(1, totalScoreRow, sheet.getLastRow()).setFontWeight("bold")
     sheet.autoResizeColumn(nameRow)
   }
 
-  _setColors(sheet, totalScoreRow, nameRow, scoreNum) {
+  _setColors(sheet, totalScoreRow, nameRow) {
     const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver']
-    for(let i=totalScoreRow; i < totalScoreRow + scoreNum*(2 + this._termNum) - 1; i++) {
+    for(let i=totalScoreRow; i < totalScoreRow + scoresSize*(2 + termSize) - 1; i++) {
       let c = false
-      for(let j=1; j<scoreNum; j++) {
-        if(i === totalScoreRow + j*(this._termNum + 2) - 1) {
+      for(let j=1; j<scoresSize; j++) {
+        if(i === totalScoreRow + j*(termSize + 2) - 1) {
           c = true
         }
       }
@@ -358,7 +355,7 @@ class FundsScoreCalculator {
   
     const allRange = sheet.getDataRange()
   
-    const idecoRankRow = totalScoreRow + 2*(2 + this._termNum)
+    const idecoRankRow = totalScoreRow + 2*(2 + termSize)
     allRange.sort({column: idecoRankRow, ascending: false})
     allRange.sort({column: 4, ascending: false})
     const idecoRange = sheet.getRange(1, idecoRankRow, sheet.getLastRow())
