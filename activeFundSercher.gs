@@ -234,16 +234,17 @@ class FundsScoreCalculator {
   }
   
   _calcScores() {
-    const powExp = [0.21, 0.69, 0.69, 0.89, 0.89, 1.11]
-//    const powExp = [1,1,1,1,1,1]
+//    const powExp = [0.21, 0.69, 0.69, 0.89, 0.89, 1.11]
+    const powExp = [1, 1, 1, 1, 1, 1]
     this._funds.forEach(fund => {
       fund.scores1 = fund.scores1.map((_, i) => {
         if(fund.returns[i] === null || fund.sharps[i] === null) {
           return null
         }
       
-        const base = fund.returns[i] * fund.sharps[i]
-        return Math.sign(fund.returns[i]) * Math.pow(Math.abs(base), powExp[i])
+        return Math.sign(fund.returns[i]) * Math.abs(fund.returns[i] * fund.sharps[i])
+//        return Math.sign(fund.returns[i]) * Math.sqrt(Math.abs(fund.returns[i] * fund.sharps[i]))
+//        return Math.sign(fund.returns[i]) * Math.pow(Math.abs(base), powExp[i]
       })
     })      
     
@@ -253,9 +254,11 @@ class FundsScoreCalculator {
     })      
     scoresList1 = scoresList1[0].map((_, i) => scoresList1.map(r => r[i]).filter(Boolean)) // transpose
 
-    const [aveList, srdList, medList, medList2] = this._analysis(scoresList1)
+    const [aveList, srdList, medList, medList2, maxList, minList] = this._analysis(scoresList1)
     this._funds.forEach(fund => {
-      fund.scores1 = this._standardize(fund.scores1, aveList, srdList, medList)
+//      fund.scores1 = this._standardize(fund.scores1, aveList, srdList, medList)
+      fund.scores1 = this._normalize(fund.scores1, maxList, minList)
+      fund.scores1[0] *= 0.5
       fund.totalScore1 = fund.scores1.reduce((acc, score) => acc + score)
     })
   }
@@ -273,7 +276,7 @@ class FundsScoreCalculator {
   
     const medList = scoresList.map((scores, i) => {
       const n = i === 0 ? 1 : 2
-      return aveList[i] + n*srdList[i]
+      return aveList[i] + n * srdList[i]
 //    scores = scores.sort((a, b) => a - b)
 //    return scores[parseInt(scores.length*96/100)]
     })
@@ -283,12 +286,21 @@ class FundsScoreCalculator {
       scores = scores.sort((a, b) => a - b)
       return scores[parseInt(scores.length/2)]
     })
+    
+    const maxList = scoresList.map(scores => Math.max(...scores))
+    const minList = scoresList.map(scores => Math.min(...scores))
+    
     console.log(aveList, srdList, medList, medList2)
-    return [aveList, srdList, medList, medList2]
+    return [aveList, srdList, medList, medList2, maxList, minList]
   }
 
-  _standardize(scores, aveList, srdList, medList) {
-    return scores.map((score, i) => ((score || medList[i]) - aveList[i]) / srdList[i])
+//  _standardize(scores, aveList, srdList, medList) {
+//    return scores.map((score, i) => ((score || medList[i]) - aveList[i]) / srdList[i])
+//  }
+
+  _normalize(scores, maxList, minList) {
+    const d = 0.5
+    return scores.map((score, i) => score !== null ? (score - minList[i]) / (maxList[i] - minList[i]) : d)
   }
 
   _output() { 
