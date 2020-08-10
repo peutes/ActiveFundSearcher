@@ -1,6 +1,6 @@
 
 const termSize = 6
-const scoresSize = 1
+const scoresSize = 3
 
 class SheetInfo {
   constructor() {
@@ -35,13 +35,6 @@ class Fund {
     }
     this.totalScores = new Array(scoresSize).fill(0)
   }
-  
-//  sqrtTarget() {
-//    const powExp = [0.24, 0.89, 0.89, 1.19, 1.19, 1.74]
-//    return this.returns.map((r, i) => {
-//      return this._calcTarget(r, Math.sqrt(Math.abs(r)), i, powExp)
-//    })
-//  }
 }
 
 class RankingScraper {
@@ -236,9 +229,8 @@ class FundsScoreCalculator {
           return
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-      
-//        fund.scores[1][i] = fund.sharps[i]
-//        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
+        fund.scores[1][i] = fund.sharps[i]
+        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
     })
 
