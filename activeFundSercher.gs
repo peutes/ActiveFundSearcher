@@ -7,7 +7,7 @@ class SheetInfo {
     this.fundsSheetNum = 10
     this.linkSheetName = 'Link'
     this.fundsSheetNames = [];
-    for(let i=0; i<this.fundsSheetNum; i++) {
+    for (let i=0; i<this.fundsSheetNum; i++) {
       this.fundsSheetNames.push('Funds' + i)
     }
   }
@@ -30,7 +30,7 @@ class Fund {
     this.sharps = new Array(termSize).fill(null)
 
     this.scores = new Array(scoresSize)
-    for(let i=0; i<scoresSize; i++) {
+    for (let i=0; i<scoresSize; i++) {
       this.scores[i] = new Array(termSize).fill(null)
     }
     this.totalScores = new Array(scoresSize).fill(0)
@@ -69,12 +69,12 @@ class RankingScraper {
     const pageNum = 180 // とりあえず3600件まで対応。
 
     let i=0;
-    for(let p=1; p<=pageNum; p++) {
+    for (let p=1; p<=pageNum; p++) {
       const link = baseLink + '/ranking/return?page=' + p
       const html = UrlFetchApp.fetch(link).getContentText()
       const table = Parser.data(html).from('<table class="md_table ranking_table">').to("</table>").build()
       const aList = Parser.data(table).from('<a class="fwb"').to("</a>").iterate()
-      if(aList.length === 0 || aList[0] === '<!DOCTYPE htm') {
+      if (aList.length === 0 || aList[0] === '<!DOCTYPE htm') {
         console.log("ERROR:", p, table, aList)
         return
       }
@@ -87,7 +87,7 @@ class RankingScraper {
         i++
       })
       
-      if(p%20 === 0) {
+      if (p%20 === 0) {
         console.log(p, this._funds.size, i)
       }
     }
@@ -130,7 +130,7 @@ class FundsScraper {
     const values = sheet.getDataRange().getValues()
     const n = 360
     const end = Math.min(values.length, n * (this._fundsSheetNum + 1))
-    for(let i=n * this._fundsSheetNum; i<end; i++) {
+    for (let i=n * this._fundsSheetNum; i<end; i++) {
       this._funds.set(values[i][0], new Fund(values[i][0], values[i][1]))
     }
     console.log('_fetchLinks')
@@ -147,7 +147,7 @@ class FundsScraper {
       const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     
       fund.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
-      for(let i=0; i<termSize; i++) {
+      for (let i=0; i<termSize; i++) {
         const result1 = spanList[i].replace(/%/, '')
         const result2 = spanList[sharpNum + i].replace(/%/, '')
         fund.returns[i] = result1 != '-' ? Number(result1) : null
@@ -156,7 +156,7 @@ class FundsScraper {
       fund.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
       i++
-      if(i%50 === 0) {
+      if (i%50 === 0) {
         console.log(i)
       }
     })
@@ -186,14 +186,10 @@ class FundsScoreCalculator {
     this._sheetInfo = new SheetInfo() 
     this._funds = new Map()
     this._ignoreList = [
-      'ＤＩＡＭ新興市場日本株ファンド', 'ＳＢＩ中小型成長株ファンドジェイネクスト（ｊｎｅｘｔ）', 'ＦＡＮＧ＋インデックス・オープン', 'ＳＢＩ中小型割安成長株ファンドジェイリバイブ（ｊｒｅｖｉｖｅ）',
-      '野村世界業種別投資シリーズ（世界半導体株投資）', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ａコース', 'ＵＢＳ中国株式ファンド', 'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）',
-      '野村ＳＮＳ関連株投資Ａコース', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド', 'グローバル全生物ゲノム株式ファンド（１年決算型）', 'テトラ・エクイティ', 'ブラックロック・ゴールド・メタル・オープンＡコース',
-      'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', '野村米国ブランド株投資（円コース）毎月分配型', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ｂコース',
-      '野村ＳＮＳ関連株投資Ｂコース', '野村米国ブランド株投資（円コース）年２回決算型', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）', 'ＵＢＳ次世代テクノロジー・ファンド',
-      'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））', 'ＵＳテクノロジー・イノベーターズ・ファンド', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）',
-      'グローバル・ハイクオリティ成長株式ファンド（年２回決算型）（限定為替ヘッジ）（未来の世界（年２回決算型））', '野村米国ブランド株投資（米ドルコース）毎月分配型'
+      'ＤＩＡＭ新興市場日本株ファンド', 'ＦＡＮＧ＋インデックス・オープン', 'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド',
+      '野村世界業種別投資シリーズ（世界半導体株投資）', '東京海上Ｒｏｇｇｅニッポン海外債券ファンド（為替ヘッジあり）', '三菱ＵＦＪ先進国高金利債券ファンド（毎月決算型）（グローバル・トップ）',
     ]
+    this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託', 'ＭＨＡＭ・公社債投信.*月号']
   }
       
   calc() {
@@ -207,7 +203,7 @@ class FundsScoreCalculator {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName)
       const values = sheet.getDataRange().getValues()
       values.forEach(value => {
-        if(value.length === 1) {
+        if (value.length === 1) {
           return
         }
     
@@ -215,14 +211,17 @@ class FundsScoreCalculator {
         fund.date = value[0]
         fund.name = value[3]
         fund.ignore = this._ignoreList.some(i => i === fund.name)
-        
-        for(let i=0; i<termSize; i++) {
+        if (this._blockList.some(b => fund.name.match(b) !== null)) {
+          return
+        }
+      
+        for (let i=0; i<termSize; i++) {
           const r = value[3*i + termSize - 1]
           const s = value[3*i + termSize]
-          if(r !== '') {
+          if (r !== '') {
             fund.returns[i] = r
           }
-          if(s !== '') {
+          if (s !== '') {
             fund.sharps[i] = s
           }
         }
@@ -234,40 +233,52 @@ class FundsScoreCalculator {
   _calcScores() {
     this._funds.forEach(fund => {
       fund.returns.forEach((r, i) => {
-        if(r === null || fund.sharps[i] === null) {
+        if (r === null || fund.sharps[i] === null) {
           return
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-        fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
+        fund.scores[1][i] = fund.sharps[i]
         fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
     })
 
-    for(let n=0; n<scoresSize; n++) {
-      const scoresList = []
+    for (let n=0; n<scoresSize; n++) {
+      // 負数対応
+      const [_0, _1, _2, _3, _4, minList] = this._analysis(this._getScoresList(n))
       this._funds.forEach(fund => {
-        scoresList.push(fund.scores[n])
+        fund.scores[n] = fund.scores[n].map((s, i) => s === null ? null : s - minList[i])
       })
 
-      const [aveList, srdList, initList, initList2, maxList, minList] = this._analysis(scoresList)
-      console.log(aveList, srdList, initList, initList2, maxList, minList)
+      // 対数変換
       this._funds.forEach(fund => {
-        if (n !== 2) {
-          const tmp = fund.scores[n].map((s, i) => s || initList[i])
-          fund.scores[n] = this._normalize(tmp, maxList, minList)
-        } else {
-          const tmp = fund.scores[n].map((s, i) => s || initList2[i])
-          fund.scores[n] = this._normalize(tmp, maxList, minList).map(s => fund.isIdeco ? s : 0)
-        }
-        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score)      
+        fund.scores[n] = fund.scores[n].map((score, i) => {
+          if (score === null) {
+            return null
+          }
+          if (score === 0) {
+            return 0
+          }
+          
+          return Math.log(score)
+        })
+      })
+      console.log(n, 'log')
+
+      this._normalizeAll(n, 20, 0, true)
+      
+      this._funds.forEach(fund => {
+        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score)
       })
     }
   }
+    
+  _getScoresList(n) {
+    const scoresList = []
+    this._funds.forEach(fund => scoresList.push(fund.scores[n]))
+    return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose 
+  }
 
   _analysis(scoresList) {
-    scoresList = scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
-
-    scoresList.map(scores => console.log(scores.length))
     const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v))
     const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
     const srdList = scoresList.map((scores, i) => {
@@ -289,13 +300,34 @@ class FundsScoreCalculator {
     const maxList = scoresList.map(s => Math.max(...s))
     const minList = scoresList.map(s => Math.min(...s))
     
-    console.log(aveList, srdList, initList, initList2)
+    console.log(aveList, srdList, initList, initList2, maxList, minList)
     return [aveList, srdList, initList, initList2, maxList, minList]
   }
 
-  _normalize(scores, maxList, minList) {
+  _normalizeAll(n, max, min, isInit) {
+    const [aveList, srdList, initList, initList2, maxList, minList] = this._analysis(this._getScoresList(n))
+    this._funds.forEach(fund => {
+      let tmp = fund.scores[n]
+      if (isInit) {
+        const usedInitList = n === 2 ? initList2 : initList
+        tmp = tmp.map((s, i) => s || usedInitList[i])
+      }
+      fund.scores[n] = this._normalize(tmp, maxList, minList, max, min)
+      if (n === 2) {
+        fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : min)
+      }
+    })
+  }
+
+  _normalize(scores, maxList, minList, max, min) {
     // i=0（3ヶ月）のスコアはリスクが大きいため減らす
-    return scores.map((score, i) => 20 * (i === 0 ? 0.5 : 1) * (score - minList[i]) / (maxList[i] - minList[i]))
+    return scores.map((score, i) => {
+      if (score === null) {
+        return null
+      }
+      const max2 = i === 0 ? max / 4 : max
+      return (score - minList[i]) / (maxList[i] - minList[i]) * (max2 - min) + min
+    })
   }
 
   _output() { 
@@ -305,7 +337,7 @@ class FundsScoreCalculator {
     const data = []
     this._funds.forEach(fund => {
       const row = [fund.link, fund.date, fund.name, fund.isIdeco]
-      for(let i=0; i<scoresSize; i++) {
+      for (let i=0; i<scoresSize; i++) {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
       fund.returns.forEach((r, i) => {
@@ -320,26 +352,28 @@ class FundsScoreCalculator {
     const isIdecoRow = 4
     const totalScoreRow = 5
     this._funds.forEach(fund => {
-      if(fund.ignore) {
+      if (fund.ignore) {
         sheet.getRange(n, nameRow).setBackground('gray')
       }
-      if(fund.isIdeco) {
+      if (fund.isIdeco) {
         sheet.getRange(n, isIdecoRow).setBackground('yellow')
       }
       n++
     })
   
     this._setColors(sheet, totalScoreRow, nameRow)
-    sheet.getRange(1, totalScoreRow, sheet.getLastRow()).setFontWeight("bold")
+    for (let i=0; i<scoresSize; i++) {
+      sheet.getRange(1, totalScoreRow + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
+    }
     sheet.autoResizeColumn(nameRow)
   }
 
   _setColors(sheet, totalScoreRow, nameRow) {
     const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver']
-    for(let i=totalScoreRow; i < totalScoreRow + scoresSize*(2 + termSize) - 1; i++) {
+    for (let i=totalScoreRow; i < totalScoreRow + scoresSize * (2 + termSize) - 1; i++) {
       let c = false
-      for(let j=1; j<scoresSize; j++) {
-        if(i === totalScoreRow + j*(termSize + 2) - 1) {
+      for (let j=1; j<scoresSize; j++) {
+        if (i === totalScoreRow + j * (termSize + 2) - 1) {
           c = true
         }
       }
@@ -349,18 +383,11 @@ class FundsScoreCalculator {
     
       sheet.getDataRange().sort({column: i, ascending: false})
       colors.forEach((color, m) => {
-        sheet.getRange(1 + 5*m, i, 5).setBackground(color)
+        sheet.getRange(1 + 5 * m, i, 5).setBackground(color)
       })
     }
   
     const allRange = sheet.getDataRange()
-  
-    const idecoRankRow = totalScoreRow + 2*(2 + termSize)
-    allRange.sort({column: idecoRankRow, ascending: false})
-    allRange.sort({column: 4, ascending: false})
-    const idecoRange = sheet.getRange(1, idecoRankRow, sheet.getLastRow())
-    this._setHighRankColor(5, idecoRange)
-
     allRange.sort({column: totalScoreRow, ascending: false})
     const nameRange = sheet.getRange(1, nameRow, sheet.getLastRow())
     this._setHighRankColor(10, nameRange)
@@ -373,7 +400,7 @@ class FundsScoreCalculator {
     let i = 0
     const rgbs = range.getBackgrounds().map(rows => {
       return rows.map(rgb => {
-        if(i >= max || rgb !== white) {
+        if (i >= max || rgb !== white) {
           return rgb
         }
         i++;
@@ -389,7 +416,7 @@ function onOpen() {
   const sheetInfo = new SheetInfo()
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
   const menu = [{name: 'ランキングスクレイピング', functionName: 'scrapingRanking'}]
-  for(let i=0; i<sheetInfo.fundsSheetNum; i++) {
+  for (let i=0; i<sheetInfo.fundsSheetNum; i++) {
     menu.push({name: 'ファンドスクレイピング' + i, functionName: 'scrapingFunds' + i})
   }
   menu.push({name: 'ファンドスコア計算', functionName: 'calcFundsScore'})
@@ -453,7 +480,7 @@ function calcFundsScore() {
 //  })
 //  
 //  spreadsheet.getSheets().forEach((sheet, i) => {
-//    if(i >= ignoreSheet.length) {
+//    if (i >= ignoreSheet.length) {
 //      spreadsheet.deleteSheet(sheet)
 //    }
 //  })
