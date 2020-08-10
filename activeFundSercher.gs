@@ -288,10 +288,11 @@ class FundsScoreCalculator {
       return Math.sqrt(sum / (scores.length - 1))
     })
     
-    const initList = scoresList.map((scores, i) => {
-      scores.sort((a, b) => b - a)
-      return scores[parseInt(scores.length*4/100)]
-    })
+    const initList = scoresList.map((_, i) => aveList[i] + 2 * srdList[i])
+//    const initList = scoresList.map((scores, i) => {
+//      scores.sort((a, b) => b - a)
+//      return scores[parseInt(scores.length*3/100)]
+//    })
 
     // 上位50%  iDeCo用 #TODO
     const initList2 = scoresList.map((scores, i) => {
