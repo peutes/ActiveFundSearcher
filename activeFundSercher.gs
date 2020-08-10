@@ -1,6 +1,6 @@
 
 const termSize = 6
-const scoresSize = 3
+const scoresSize = 1
 
 class SheetInfo {
   constructor() {
@@ -124,7 +124,6 @@ class FundsScraper {
     this._output()
   }
 
-
   _fetchLinks() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this._sheetInfo.linkSheetName)
     const values = sheet.getDataRange().getValues()
@@ -237,34 +236,42 @@ class FundsScoreCalculator {
           return
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-        fund.scores[1][i] = fund.sharps[i]
-        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
+      
+//        fund.scores[1][i] = fund.sharps[i]
+//        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
     })
 
     for (let n=0; n<scoresSize; n++) {
-      // 負数対応
-      const [_0, _1, _2, _3, _4, minList] = this._analysis(this._getScoresList(n))
+      const minList1 = this._getScoresList(n).map(s => Math.min(...s))
+      // バグ埋め込みやすいので消すな。score === null のワナ
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((s, i) => s === null ? null : s - minList[i])
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score - minList1[i])
       })
-
-      // 対数変換
+      
+      const ignoreNum = Number.MIN_VALUE
       this._funds.forEach(fund => {
         fund.scores[n] = fund.scores[n].map((score, i) => {
           if (score === null) {
             return null
           }
           if (score === 0) {
-            return 0
+            return ignoreNum
           }
-          
-          return Math.log(score)
+
+          // マイナスに振り切ると正規化に影響するので防ぐ
+          const s = Math.log(score)
+          return s < 0 ? ignoreNum : s
         })
       })
-      console.log(n, 'log')
-
-      this._normalizeAll(n, 20, 0, true)
+      
+      // 下位を外れ値として切り捨てる。正規化が安定する
+      const minList2 = this._getScoresList(n).map(scores => (scores.sort((a, b) => a - b))[parseInt(scores.length/50)])
+      this._funds.forEach(fund => {
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score < minList2[i] ? minList2[i] : score)
+      })
+      
+      this._normalizeAndInit(n, 20, 0)
       
       this._funds.forEach(fund => {
         fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score)
@@ -275,7 +282,7 @@ class FundsScoreCalculator {
   _getScoresList(n) {
     const scoresList = []
     this._funds.forEach(fund => scoresList.push(fund.scores[n]))
-    return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose 
+    return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
   }
 
   _analysis(scoresList) {
@@ -288,12 +295,15 @@ class FundsScoreCalculator {
       })
       return Math.sqrt(sum / (scores.length - 1))
     })
-  
-    const initList = scoresList.map((scores, i) => aveList[i] + 2 * srdList[i])
-  
+    
+    const initList = scoresList.map((scores, i) => {
+      scores.sort((a, b) => b - a)
+      return scores[parseInt(scores.length*4/100)]
+    })
+
     // 上位50%  iDeCo用 #TODO
     const initList2 = scoresList.map((scores, i) => {
-      scores = scores.sort((a, b) => a - b)
+      scores.sort((a, b) => b - a)
       return scores[parseInt(scores.length/2)]
     })
     
@@ -304,15 +314,21 @@ class FundsScoreCalculator {
     return [aveList, srdList, initList, initList2, maxList, minList]
   }
 
-  _normalizeAll(n, max, min, isInit) {
-    const [aveList, srdList, initList, initList2, maxList, minList] = this._analysis(this._getScoresList(n))
+  _normalizeAndInit(n, max, min) {
+    console.log('normalizeAndInit')
+    const [_1, _2, _3, _4, maxList, minList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
-      let tmp = fund.scores[n]
-      if (isInit) {
-        const usedInitList = n === 2 ? initList2 : initList
-        tmp = tmp.map((s, i) => s || usedInitList[i])
-      }
-      fund.scores[n] = this._normalize(tmp, maxList, minList, max, min)
+      // i=0（3ヶ月）のスコアはリスクが大きいため減らす
+      fund.scores[n] = this._normalize(fund.scores[n], maxList, minList, max, min).map((s, i) => i === 0 ? s / 2 : s)
+    })
+
+    const [_5, _6, initList, initList2, _7, _8] = this._analysis(this._getScoresList(n))
+    this._funds.forEach(fund => {
+      const usedInitList = n === 2 ? initList2 : initList
+      fund.scores[n] = fund.scores[n].map((s, i) => s === null ? usedInitList[i] : s)
+    })
+
+    this._funds.forEach(fund => {
       if (n === 2) {
         fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : min)
       }
@@ -320,13 +336,11 @@ class FundsScoreCalculator {
   }
 
   _normalize(scores, maxList, minList, max, min) {
-    // i=0（3ヶ月）のスコアはリスクが大きいため減らす
     return scores.map((score, i) => {
       if (score === null) {
         return null
       }
-      const max2 = i === 0 ? max / 4 : max
-      return (score - minList[i]) / (maxList[i] - minList[i]) * (max2 - min) + min
+      return (score - minList[i]) / (maxList[i] - minList[i]) * (max - min) + min
     })
   }
 
