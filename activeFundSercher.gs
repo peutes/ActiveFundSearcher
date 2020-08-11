@@ -243,25 +243,14 @@ class FundsScoreCalculator {
       
       const ignoreNum = Number.MIN_VALUE
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => {
-          if (score === null) {
-            return null
-          }
-          if (score === 0) {
-            return ignoreNum
-          }
-
-          // マイナスに振り切ると正規化に影響するので防ぐ
-          let s = Math.log(Math.sqrt(score))
-          return s < 0 ? ignoreNum : s
-        })
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.log(Math.sqrt(score) + Math.E) - 1)
       })
       
-      // 下位を外れ値として切り捨てる。正規化が安定する。試行錯誤の上、100で固定。
-      const minList2 = this._getScoresList(n).map(scores => (scores.sort((a, b) => a - b))[parseInt(scores.length/100)])
-      this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score <= minList2[i] ? minList2[i] : score)
-      })
+//      // 下位を外れ値として切り捨てる。正規化が安定する。試行錯誤の上、100で固定。
+//      const minList2 = this._getScoresList(n).map(scores => (scores.sort((a, b) => a - b))[parseInt(scores.length/100)])
+//      this._funds.forEach(fund => {
+//        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score <= minList2[i] ? minList2[i] : score)
+//      })
       
       this._normalizeAndInit(n, 100, 0)
       
@@ -296,10 +285,11 @@ class FundsScoreCalculator {
     const initList = scoresList.map((_, i) => aveList[i] + 2 * srdList[i]) // 下位を捨てすぎると壊れるので注意
 
     // 上位50%  iDeCo用 #TODO
-    const initList2 = scoresList.map((scores, i) => {
-      scores.sort((a, b) => b - a)
-      return scores[parseInt(scores.length/2)]
-    })
+//    const initList2 = scoresList.map((scores, i) => {
+//      scores.sort((a, b) => b - a)
+//      return scores[parseInt(scores.length/2)]
+//    })
+    const initList2 = scoresList.map((_, i) => aveList[i]) // 下位を捨てすぎると壊れるので注意
     
     const maxList = scoresList.map(s => Math.max(...s))
     const minList = scoresList.map(s => Math.min(...s))
@@ -310,23 +300,27 @@ class FundsScoreCalculator {
 
   _normalizeAndInit(n, max, min) {
     console.log('normalizeAndInit')
-    const [_1, _2, _3, _4, maxList, minList] = this._analysis(this._getScoresList(n))
-    this._funds.forEach(fund => {
-      // i=0（3ヶ月）のスコアはリスクが大きいため減らす
-      fund.scores[n] = this._normalize(fund.scores[n], maxList, minList, max, min).map((s, i) => i === 0 ? s / 3 : s)
-    })
+//    const [_1, _2, _3, _4, maxList, minList] = this._analysis(this._getScoresList(n))
+//    this._funds.forEach(fund => {
+//      // i=0（3ヶ月）のスコアはリスクが大きいため減らす
+//      fund.scores[n] = this._normalize(fund.scores[n], maxList, minList, max, min).map((s, i) => i === 0 ? s / 3 : s)
+//    })
 
-    const [_5, _6, initList, initList2, _7, _8] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList, initList, initList2] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       const usedInitList = n === 2 ? initList2 : initList
-      fund.scores[n] = fund.scores[n].map((s, i) => s === null ? usedInitList[i] : s)
+      fund.scores[n] = fund.scores[n].map((score, i) => {
+        score = score === null ? usedInitList[i] : score
+        return (score - aveList[i]) / srdList[i] * (i ===0 ? 1 : 5)
+      })
     })
 
+    const ignoreNum = -100
     this._funds.forEach(fund => {
       if (n === 2) {
-        fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : min)
+        fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : ignoreNum)
       }
-    })
+    })    
   }
 
   _normalize(scores, maxList, minList, max, min) {
