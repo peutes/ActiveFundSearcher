@@ -229,7 +229,7 @@ class FundsScoreCalculator {
           return
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-        fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
+        fund.scores[1][i] = fund.sharps[i]
         fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
     })
@@ -279,8 +279,8 @@ class FundsScoreCalculator {
 
     //  http://www.gaoshukai.com/20/19/0001/
 //    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
-    const z = 2.500	// 98.7580669348%   キリが良いので
-//    const z = 2.327	    // 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
+//    const z = 2.433	    // 98.5025699108%
+    const z = 2.327	// 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
     const initList = scoresList.map((_, i) => aveList[i] + z * srdList[i])
 
     // iDeCo用
