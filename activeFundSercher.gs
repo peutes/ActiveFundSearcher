@@ -277,19 +277,12 @@ class FundsScoreCalculator {
       return Math.sqrt(sum / (scores.length - 1))
     })
 
-    // トータル100位を想定できる位置
-//    const initList = scoresList.map((scores, i) => {
-//      scores.sort((a, b) => b - a)
-//      return scores[parseInt(100*scores.length/scoresList[0].length)]
-//    })
-    const initList = scoresList.map((_, i) => aveList[i] + 2 * srdList[i]) // 下位を捨てすぎると壊れるので注意
+    //  http://www.gaoshukai.com/20/19/0001/
+    const z = 2.576	// 99.0004935369%
+    const initList = scoresList.map((_, i) => aveList[i] + z * srdList[i])
 
-    // 上位50%  iDeCo用 #TODO
-//    const initList2 = scoresList.map((scores, i) => {
-//      scores.sort((a, b) => b - a)
-//      return scores[parseInt(scores.length/2)]
-//    })
-    const initList2 = scoresList.map((_, i) => aveList[i]) // 下位を捨てすぎると壊れるので注意
+    // iDeCo用
+    const initList2 = scoresList.map((_, i) => aveList[i])
     
     const maxList = scoresList.map(s => Math.max(...s))
     const minList = scoresList.map(s => Math.min(...s))
@@ -300,21 +293,17 @@ class FundsScoreCalculator {
 
   _normalizeAndInit(n, max, min) {
     console.log('normalizeAndInit')
-//    const [_1, _2, _3, _4, maxList, minList] = this._analysis(this._getScoresList(n))
-//    this._funds.forEach(fund => {
-//      // i=0（3ヶ月）のスコアはリスクが大きいため減らす
-//      fund.scores[n] = this._normalize(fund.scores[n], maxList, minList, max, min).map((s, i) => i === 0 ? s / 3 : s)
-//    })
 
+    // 先に各期間の差を計算する。あえて差をつけるために反映は標準化したあとにする
     const [aveList, srdList, initList, initList2] = this._analysis(this._getScoresList(n))
+    console.log('aveList', aveList)
     this._funds.forEach(fund => {
       const usedInitList = n === 2 ? initList2 : initList
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        score = score === null ? usedInitList[i] : score
-        return (score - aveList[i]) / srdList[i] * (i ===0 ? 1 : 5)
+        return ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i] / (i === 0 ? 2 : 1)
       })
     })
-
+    
     const ignoreNum = -100
     this._funds.forEach(fund => {
       if (n === 2) {
@@ -322,16 +311,7 @@ class FundsScoreCalculator {
       }
     })    
   }
-
-  _normalize(scores, maxList, minList, max, min) {
-    return scores.map((score, i) => {
-      if (score === null) {
-        return null
-      }
-      return (score - minList[i]) / (maxList[i] - minList[i]) * (max - min) + min
-    })
-  }
-
+  
   _output() { 
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
     const sheet = spreadsheet.insertSheet(this._sheetInfo.getScoreSheetName(), 0)
