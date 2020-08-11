@@ -4,7 +4,7 @@ const scoresSize = 3
 
 class SheetInfo {
   constructor() {
-    this.fundsSheetNum = 10
+    this.fundsSheetNum = 12
     this.linkSheetName = 'Link'
     this.fundsSheetNames = [];
     for (let i=0; i<this.fundsSheetNum; i++) {
@@ -120,7 +120,7 @@ class FundsScraper {
   _fetchLinks() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this._sheetInfo.linkSheetName)
     const values = sheet.getDataRange().getValues()
-    const n = 360
+    const n = 300
     const end = Math.min(values.length, n * (this._fundsSheetNum + 1))
     for (let i=n * this._fundsSheetNum; i<end; i++) {
       this._funds.set(values[i][0], new Fund(values[i][0], values[i][1]))
@@ -229,7 +229,7 @@ class FundsScoreCalculator {
           return
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-        fund.scores[1][i] = fund.sharps[i]
+        fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
         fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
       })
     })
@@ -278,8 +278,9 @@ class FundsScoreCalculator {
     })
 
     //  http://www.gaoshukai.com/20/19/0001/
-    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
-//    const z = 2.327	// 98.0034734751%
+//    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
+    const z = 2.500	// 98.7580669348%   キリが良いので
+//    const z = 2.327	    // 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
     const initList = scoresList.map((_, i) => aveList[i] + z * srdList[i])
 
     // iDeCo用
@@ -301,7 +302,7 @@ class FundsScoreCalculator {
     this._funds.forEach(fund => {
       const usedInitList = n === 2 ? initList2 : initList
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        return ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i] / (i === 0 ? 2 : 1)
+        return 4 * ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i] / (i === 0 ? 4 : 1)
       })
     })
     
@@ -448,6 +449,14 @@ function scrapingFunds8() {
 
 function scrapingFunds9() {
   (new FundsScraper(9)).scraping()
+}
+
+function scrapingFunds10() {
+  (new FundsScraper(10)).scraping()
+}
+
+function scrapingFunds11() {
+  (new FundsScraper(11)).scraping()
 }
 
 function calcFundsScore() {
