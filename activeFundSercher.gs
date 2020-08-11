@@ -278,7 +278,8 @@ class FundsScoreCalculator {
     })
 
     //  http://www.gaoshukai.com/20/19/0001/
-    const z = 2.576	// 99.0004935369%
+    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
+//    const z = 2.327	// 98.0034734751%
     const initList = scoresList.map((_, i) => aveList[i] + z * srdList[i])
 
     // iDeCo用
