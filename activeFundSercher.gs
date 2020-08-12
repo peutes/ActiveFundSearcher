@@ -180,6 +180,7 @@ class FundsScoreCalculator {
     this._ignoreList = [
       'ＤＩＡＭ新興市場日本株ファンド', 'ＦＡＮＧ＋インデックス・オープン', 'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド',
       '野村世界業種別投資シリーズ（世界半導体株投資）', '東京海上Ｒｏｇｇｅニッポン海外債券ファンド（為替ヘッジあり）', '三菱ＵＦＪ先進国高金利債券ファンド（毎月決算型）（グローバル・トップ）',
+      '三菱ＵＦＪ先進国高金利債券ファンド（年１回決算型）（グローバル・トップ年１）',
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託', 'ＭＨＡＭ・公社債投信.*月号']
   }
@@ -276,33 +277,32 @@ class FundsScoreCalculator {
       })
       return Math.sqrt(sum / (scores.length - 1))
     })
-
-    //  http://www.gaoshukai.com/20/19/0001/
-//    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
-//    const z = 2.433	    // 98.5025699108%
-    const z = 2.327	// 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
-    const initList = scoresList.map((_, i) => aveList[i] + z * srdList[i])
-
-    // iDeCo用
-    const initList2 = scoresList.map((_, i) => aveList[i])
     
-    const maxList = scoresList.map(s => Math.max(...s))
-    const minList = scoresList.map(s => Math.min(...s))
+//    const maxList = scoresList.map(s => Math.max(...s))
+//    const minList = scoresList.map(s => Math.min(...s))
     
-    console.log(aveList, srdList, initList, initList2, maxList, minList)
-    return [aveList, srdList, initList, initList2, maxList, minList]
+    console.log(aveList, srdList)
+    return [aveList, srdList]
   }
 
   _normalizeAndInit(n, max, min) {
     console.log('normalizeAndInit')
 
-    // 先に各期間の差を計算する。あえて差をつけるために反映は標準化したあとにする
-    const [aveList, srdList, initList, initList2] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList] = this._analysis(this._getScoresList(n))
     console.log('aveList', aveList)
+
+    //  http://www.gaoshukai.com/20/19/0001/
+//    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
+    const z = 2.5       // 98.7580669348%  キリが良いので採用
+//    const z = 2.433	// 98.5025699108%
+//    const z = 2.327	// 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
+    const aveExp = 0.5 // 小さくすると、initの値が大きくなる
+    const usedInitList = n === 2 ? aveList : aveList.map((ave, i) => ave + z * srdList[i] * Math.pow(ave, aveExp))
+
     this._funds.forEach(fund => {
-      const usedInitList = n === 2 ? initList2 : initList
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        return 4 * ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i] / (i === 0 ? 4 : 1)
+        const weight = (n === 1 ? 2 : 4) / aveList[i] / (i === 0 ? 3 : 1)
+        return weight * ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i]
       })
     })
     
@@ -332,32 +332,33 @@ class FundsScoreCalculator {
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
     let n = 1
-    const nameRow = 3
-    const isIdecoRow = 4
-    const totalScoreRow = 5
+    const nameCol = 3
+    const isIdecoCol = 4
+    const totalScoreCol = 5
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, nameRow).setBackground('gray')
+        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * termSize - 1).setBackground('gray')
       }
       if (fund.isIdeco) {
-        sheet.getRange(n, isIdecoRow).setBackground('yellow')
+        sheet.getRange(n, isIdecoCol).setBackground('yellow')
       }
       n++
     })
   
-    this._setColors(sheet, totalScoreRow, nameRow)
+    this._setColors(sheet, totalScoreCol, nameCol)
     for (let i=0; i<scoresSize; i++) {
-      sheet.getRange(1, totalScoreRow + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
+      sheet.getRange(1, totalScoreCol + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
     }
-    sheet.autoResizeColumn(nameRow)
+    sheet.autoResizeColumn(nameCol)
   }
 
-  _setColors(sheet, totalScoreRow, nameRow) {
-    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver']
-    for (let i=totalScoreRow; i < totalScoreRow + scoresSize * (2 + termSize) - 1; i++) {
+  _setColors(sheet, totalScoreCol, nameCol) {
+    const white = '#ffffff' // needs RGB color
+    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white']
+    for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + termSize) - 1; i++) {
       let c = false
       for (let j=1; j<scoresSize; j++) {
-        if (i === totalScoreRow + j * (termSize + 2) - 1) {
+        if (i === totalScoreCol + j * (termSize + 2) - 1) {
           c = true
         }
       }
@@ -366,14 +367,30 @@ class FundsScoreCalculator {
       }
     
       sheet.getDataRange().sort({column: i, ascending: false})
-      colors.forEach((color, m) => {
-        sheet.getRange(1 + 5 * m, i, 5).setBackground(color)
+      
+      let j = 0
+      const range = sheet.getRange(1, i, 5 * colors.length)
+      const rgbs = range.getBackgrounds().map(rows => {
+        return rows.map(rgb => {
+          if (rgb !== white) {
+            return rgb
+          }
+          const result = colors[parseInt(j / 5)]
+          j++;
+
+          return result
+        })
       })
+      range.setBackgrounds(rgbs)
+
+//      colors.forEach((color, m) => {
+//        sheet.getRange(1 + 5 * m, i, 5).setBackground(color)
+//      })
     }
   
     const allRange = sheet.getDataRange()
-    allRange.sort({column: totalScoreRow, ascending: false})
-    const nameRange = sheet.getRange(1, nameRow, sheet.getLastRow())
+    allRange.sort({column: totalScoreCol, ascending: false})
+    const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
     this._setHighRankColor(10, nameRange)
   }
 
