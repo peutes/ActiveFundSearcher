@@ -181,7 +181,10 @@ class FundsScoreCalculator {
       'ＤＩＡＭ新興市場日本株ファンド', 'ＦＡＮＧ＋インデックス・オープン', 'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド',
       '野村世界業種別投資シリーズ（世界半導体株投資）', '東京海上Ｒｏｇｇｅニッポン海外債券ファンド（為替ヘッジあり）', '三菱ＵＦＪ先進国高金利債券ファンド（毎月決算型）（グローバル・トップ）',
       '三菱ＵＦＪ先進国高金利債券ファンド（年１回決算型）（グローバル・トップ年１）', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ａコース', '野村ＳＮＳ関連株投資Ａコース', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）',
-      '野村米国ブランド株投資（円コース）毎月分配型',
+      '野村米国ブランド株投資（円コース）毎月分配型', 'ＵＳテクノロジー・イノベーターズ・ファンド', 'グローバル全生物ゲノム株式ファンド（１年決算型）', '野村米国ブランド株投資（円コース）年２回決算型',
+      'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））', 'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））',
+      'リスク抑制世界８資産バランスファンド（しあわせの一歩）', 'スパークス・ベスト・ピック・ファンド（ヘッジ型）', '世界８資産リスク分散バランスファンド（目標払出し型）（しあわせのしずく）',
+      'グローバル・ハイクオリティ成長株式ファンド（年２回決算型）（限定為替ヘッジ）（未来の世界（年２回決算型））', 'ＪＰ日米バランスファンド（ＪＰ日米）', 'ＧＳフューチャー・テクノロジー・リーダーズＡコース（限定為替ヘッジ）（ｎｅｘｔＷＩＮ）',
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託', 'ＭＨＡＭ・公社債投信.*月号']
   }
@@ -232,7 +235,7 @@ class FundsScoreCalculator {
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
         fund.scores[1][i] = fund.sharps[i]
-        fund.scores[2][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
+        fund.scores[2][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i] // iDeCo版
       })
     })
 
@@ -245,7 +248,7 @@ class FundsScoreCalculator {
       
       const ignoreNum = Number.MIN_VALUE
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(Math.sqrt(score) + Math.E) - 1))
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(score + Math.E)))
       })
       
 //      // 下位を外れ値として切り捨てる。正規化が安定する。試行錯誤の上、100で固定。
@@ -271,6 +274,10 @@ class FundsScoreCalculator {
   _analysis(scoresList) {
     const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v))
     const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
+    const ave2List = scoresList.map((scores, i) => {
+      const sum = scores.reduce((acc, v) => acc + v * v)
+      return Math.sqrt(sum/scoresList[i].length)
+    })
     const srdList = scoresList.map((scores, i) => {
       let sum = 0
       scores.forEach(score => {
@@ -282,24 +289,24 @@ class FundsScoreCalculator {
 //    const maxList = scoresList.map(s => Math.max(...s))
 //    const minList = scoresList.map(s => Math.min(...s))
     
-    console.log(aveList, srdList)
-    return [aveList, srdList]
+    console.log("aveList", aveList, "ave2List", ave2List, "srdList", srdList)
+    return [aveList, srdList, ave2List]
   }
 
   _normalizeAndInit(n, max, min) {
     console.log('normalizeAndInit')
 
-    // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→正規化→ルート化→正規化
+    // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→二乗平均平方根で減算化→ルート化→正規化
     // 最初にログ化→平方根→正規化しても外れ値の対処に限界があったため、この戦略に変更
     
-    const [aveList, srdList] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList, ave2List] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         if (score === null) {
           return null
         }
 
-        const res = 10000000000 * (score - aveList[i]) // 1以下のルートの影響を極力排除
+        const res = 10000000000 * (score - ave2List[i])
         return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -3 : -1))  // i === 0 のときのみ、より分散を小さくする。 1/4でも大きいので1/8
       })
     })
@@ -375,7 +382,7 @@ class FundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white']
+    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white', ' white']
 
     allRange.sort({column: totalScoreCol, ascending: false})
     const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
