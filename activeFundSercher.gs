@@ -286,12 +286,12 @@ class FundsScoreCalculator {
 //    const minList = scoresList.map(s => Math.min(...s))
 
     // 下位1%
-    const medList = scoresList.map(scores => {
+    const lowList = scoresList.map(scores => {
       scores.sort((a, b) => a - b)
       return scores[parseInt(scores.length/100)]
     })
-    console.log("aveList", aveList, "srdList", srdList, "medList", medList)
-    return [aveList, srdList, medList]
+    console.log("aveList", aveList, "srdList", srdList, "lowList", lowList)
+    return [aveList, srdList, lowList]
   }
 
   _normalizeAndInit(n, max, min) {
@@ -300,15 +300,15 @@ class FundsScoreCalculator {
     // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→二乗平均平方根で減算化→ルート化→正規化
     // 最初にログ化→平方根→正規化しても外れ値の対処に限界があったため、この戦略に変更
     
-    const [aveList, srdList, medList] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList, lowList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         if (score === null) {
           return null
         }
 
-        const res = 10000000000 * (score - medList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), i === 0 ? 1 / 8 : 1)  // i === 0 のときのみ、より分散を小さくする。
+        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -4 : -1))  // i === 0 のときのみ、より分散を小さくする。
       })
     })
 
@@ -317,13 +317,10 @@ class FundsScoreCalculator {
       fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
     })
 
-    // init
-    const topPer = 3
+    const topPer = 100 // 100位がギリギリな雰囲気あるので、今後の展開によっては90位、80位でもよいかも？
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
-      const medNum = parseInt(scores.length * topPer / 100)
-      console.log("init", n, i, medNum)
-      return scores[medNum]
+      return scores[topPer]
     })
     
     this._funds.forEach(fund => {
