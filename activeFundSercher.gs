@@ -245,7 +245,7 @@ class FundsScoreCalculator {
       
       const ignoreNum = Number.MIN_VALUE
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.log(Math.sqrt(score) + Math.E) - 1)
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(Math.sqrt(score) + Math.E) - 1))
       })
       
 //      // 下位を外れ値として切り捨てる。正規化が安定する。試行錯誤の上、100で固定。
@@ -289,22 +289,38 @@ class FundsScoreCalculator {
   _normalizeAndInit(n, max, min) {
     console.log('normalizeAndInit')
 
-    const [aveList, srdList] = this._analysis(this._getScoresList(n))
-    console.log('aveList', aveList)
-
-    //  http://www.gaoshukai.com/20/19/0001/
-//    const z = 2.576	// 99.0004935369%    正規分布 上位0.5%
-//    const z = 2.5       // 98.7580669348%  キリが良いので採用
-    const z = 2.327	// 98.0034734751%        正規分布 上位1%
-    const aveExp = 0.5 // 小さくすると、initの値が大きくなる
-    const usedInitList = n === 2 ? aveList : aveList.map((ave, i) => ave + z * srdList[i] * Math.pow(ave, aveExp))
+    // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→正規化→ルート化→正規化
+    // 最初にログ化→平方根→正規化しても外れ値の対処に限界があったため、この戦略に変更
     
-    console.log("usedInitList", usedInitList)
-
+    const [aveList, srdList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        const res = ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i]
-        return 4 * Math.sign(res) * Math.pow(Math.abs(res), i === 0 ? 1 / 2 : 1)
+        if (score === null) {
+          return null
+        }
+
+        const res = 10000000000 * (score - aveList[i]) // 1以下のルートの影響を極力排除
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -3 : -1))  // i === 0 のときのみ、より分散を小さくする。 1/4でも大きいので1/8
+      })
+    })
+
+    const [aveList2, srdList2] = this._analysis(this._getScoresList(n))
+    this._funds.forEach(fund => {
+      fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
+    })
+
+    // init
+    const topPer = 3
+    const initList = this._getScoresList(n).map((scores, i) => {
+      scores.sort((a, b) => b - a)
+      const medNum = parseInt(scores.length * topPer / 100)
+      console.log("init", n, i, medNum)
+      return scores[medNum]
+    })
+    
+    this._funds.forEach(fund => {
+      fund.scores[n] = fund.scores[n].map((score, i) => {
+        return 5 * (score === null ? (n === 2 ? 0 : initList[i]) : score)
       })
     })
     
