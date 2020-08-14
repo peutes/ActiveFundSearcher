@@ -274,10 +274,6 @@ class FundsScoreCalculator {
   _analysis(scoresList) {
     const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v))
     const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
-    const ave2List = scoresList.map((scores, i) => {
-      const sum = scores.reduce((acc, v) => acc + v * v)
-      return Math.sqrt(sum/scoresList[i].length)
-    })
     const srdList = scoresList.map((scores, i) => {
       let sum = 0
       scores.forEach(score => {
@@ -286,11 +282,11 @@ class FundsScoreCalculator {
       return Math.sqrt(sum / (scores.length - 1))
     })
     
-//    const maxList = scoresList.map(s => Math.max(...s))
+    const maxList = scoresList.map(s => Math.max(...s))
 //    const minList = scoresList.map(s => Math.min(...s))
     
-    console.log("aveList", aveList, "ave2List", ave2List, "srdList", srdList)
-    return [aveList, srdList, ave2List]
+    console.log("aveList", aveList, "srdList", srdList, "maxList", maxList)
+    return [aveList, srdList, maxList]
   }
 
   _normalizeAndInit(n, max, min) {
@@ -299,14 +295,14 @@ class FundsScoreCalculator {
     // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→二乗平均平方根で減算化→ルート化→正規化
     // 最初にログ化→平方根→正規化しても外れ値の対処に限界があったため、この戦略に変更
     
-    const [aveList, srdList, ave2List] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList, maxList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         if (score === null) {
           return null
         }
 
-        const res = 10000000000 * (score - ave2List[i])
+        const res = 10000000000 * (score - aveList[i])
         return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -3 : -1))  // i === 0 のときのみ、より分散を小さくする。 1/4でも大きいので1/8
       })
     })
