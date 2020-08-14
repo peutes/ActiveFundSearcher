@@ -180,7 +180,8 @@ class FundsScoreCalculator {
     this._ignoreList = [
       'ＤＩＡＭ新興市場日本株ファンド', 'ＦＡＮＧ＋インデックス・オープン', 'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド',
       '野村世界業種別投資シリーズ（世界半導体株投資）', '東京海上Ｒｏｇｇｅニッポン海外債券ファンド（為替ヘッジあり）', '三菱ＵＦＪ先進国高金利債券ファンド（毎月決算型）（グローバル・トップ）',
-      '三菱ＵＦＪ先進国高金利債券ファンド（年１回決算型）（グローバル・トップ年１）',
+      '三菱ＵＦＪ先進国高金利債券ファンド（年１回決算型）（グローバル・トップ年１）', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ａコース', '野村ＳＮＳ関連株投資Ａコース', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）',
+      '野村米国ブランド株投資（円コース）毎月分配型',
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託', 'ＭＨＡＭ・公社債投信.*月号']
   }
@@ -292,17 +293,18 @@ class FundsScoreCalculator {
     console.log('aveList', aveList)
 
     //  http://www.gaoshukai.com/20/19/0001/
-//    const z = 2.576	// 99.0004935369%   1年と5年が五分五分なので採用
-    const z = 2.5       // 98.7580669348%  キリが良いので採用
-//    const z = 2.433	// 98.5025699108%
-//    const z = 2.327	// 98.0034734751%   1年オンリーのやつがごくわずかに不利なので不採用に
+//    const z = 2.576	// 99.0004935369%    正規分布 上位0.5%
+//    const z = 2.5       // 98.7580669348%  キリが良いので採用
+    const z = 2.327	// 98.0034734751%        正規分布 上位1%
     const aveExp = 0.5 // 小さくすると、initの値が大きくなる
     const usedInitList = n === 2 ? aveList : aveList.map((ave, i) => ave + z * srdList[i] * Math.pow(ave, aveExp))
+    
+    console.log("usedInitList", usedInitList)
 
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        const weight = (n === 1 ? 2 : 4) / aveList[i] / (i === 0 ? 3 : 1)
-        return weight * ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i]
+        const res = ((score === null ? usedInitList[i] : score) - aveList[i]) / srdList[i] / aveList[i]
+        return 4 * Math.sign(res) * Math.pow(Math.abs(res), i === 0 ? 1 / 2 : 1)
       })
     })
     
@@ -317,6 +319,9 @@ class FundsScoreCalculator {
   _output() { 
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
     const sheet = spreadsheet.insertSheet(this._sheetInfo.getScoreSheetName(), 0)
+    const nameCol = 3
+    const isIdecoCol = 4
+    const totalScoreCol = 5
 
     const data = []
     this._funds.forEach(fund => {
@@ -331,10 +336,12 @@ class FundsScoreCalculator {
     })
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
 
+    sheet.autoResizeColumn(nameCol)
+    for (let i=0; i<scoresSize; i++) {
+      sheet.getRange(1, totalScoreCol + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
+    }
+
     let n = 1
-    const nameCol = 3
-    const isIdecoCol = 4
-    const totalScoreCol = 5
     this._funds.forEach(fund => {
       if (fund.ignore) {
         sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * termSize - 1).setBackground('gray')
@@ -344,17 +351,20 @@ class FundsScoreCalculator {
       }
       n++
     })
-  
-    this._setColors(sheet, totalScoreCol, nameCol)
-    for (let i=0; i<scoresSize; i++) {
-      sheet.getRange(1, totalScoreCol + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
-    }
-    sheet.autoResizeColumn(nameCol)
+
+    const allRange = sheet.getDataRange()
+    this._setColors(sheet, allRange, totalScoreCol, nameCol)
+    allRange.sort({column: totalScoreCol, ascending: false})
   }
 
-  _setColors(sheet, totalScoreCol, nameCol) {
+  _setColors(sheet, allRange, totalScoreCol, nameCol) {
     const white = '#ffffff' // needs RGB color
     const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white']
+
+    allRange.sort({column: totalScoreCol, ascending: false})
+    const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
+    this._setHighRankColor(10, nameRange)
+
     for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + termSize) - 1; i++) {
       let c = false
       for (let j=1; j<scoresSize; j++) {
@@ -366,7 +376,7 @@ class FundsScoreCalculator {
         continue
       }
     
-      sheet.getDataRange().sort({column: i, ascending: false})
+      allRange.sort({column: i, ascending: false})
       
       let j = 0
       const range = sheet.getRange(1, i, 5 * colors.length)
@@ -382,16 +392,7 @@ class FundsScoreCalculator {
         })
       })
       range.setBackgrounds(rgbs)
-
-//      colors.forEach((color, m) => {
-//        sheet.getRange(1 + 5 * m, i, 5).setBackground(color)
-//      })
     }
-  
-    const allRange = sheet.getDataRange()
-    allRange.sort({column: totalScoreCol, ascending: false})
-    const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
-    this._setHighRankColor(10, nameRange)
   }
 
   _setHighRankColor(max, range) {
