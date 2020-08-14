@@ -282,11 +282,16 @@ class FundsScoreCalculator {
       return Math.sqrt(sum / (scores.length - 1))
     })
     
-    const maxList = scoresList.map(s => Math.max(...s))
+//    const maxList = scoresList.map(s => Math.max(...s))
 //    const minList = scoresList.map(s => Math.min(...s))
-    
-    console.log("aveList", aveList, "srdList", srdList, "maxList", maxList)
-    return [aveList, srdList, maxList]
+
+    // 下位1%
+    const medList = scoresList.map(scores => {
+      scores.sort((a, b) => a - b)
+      return scores[parseInt(scores.length/100)]
+    })
+    console.log("aveList", aveList, "srdList", srdList, "medList", medList)
+    return [aveList, srdList, medList]
   }
 
   _normalizeAndInit(n, max, min) {
@@ -295,15 +300,15 @@ class FundsScoreCalculator {
     // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→二乗平均平方根で減算化→ルート化→正規化
     // 最初にログ化→平方根→正規化しても外れ値の対処に限界があったため、この戦略に変更
     
-    const [aveList, srdList, maxList] = this._analysis(this._getScoresList(n))
+    const [aveList, srdList, medList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         if (score === null) {
           return null
         }
 
-        const res = 10000000000 * (score - aveList[i])
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -3 : -1))  // i === 0 のときのみ、より分散を小さくする。 1/4でも大きいので1/8
+        const res = 10000000000 * (score - medList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
+        return Math.sign(res) * Math.pow(Math.abs(res), i === 0 ? 1 / 8 : 1)  // i === 0 のときのみ、より分散を小さくする。
       })
     })
 
