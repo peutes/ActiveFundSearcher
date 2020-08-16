@@ -10,6 +10,7 @@ class SheetInfo {
     for (let i=0; i<this.fundsSheetNum; i++) {
       this.fundsSheetNames.push('Funds' + i)
     }
+    this.downsideRiskSheetName = 'Downside'
   }
   
   getScoreSheetName() {
@@ -173,6 +174,68 @@ class FundsScraper {
   }
 }
 
+class FundsDownsideRiskCalculator {
+  constructor() {
+    this.sheetInfo = new SheetInfo()
+  }
+  
+  calc() {
+    const minkabu = "minkabu"
+    const link = "https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download?isinCd=JP90C000ATW8&associFundCd=39311149"
+    const csv = UrlFetchApp
+      .fetch(link)
+      .getContentText('Shift-JIS')
+      .split('\r\n')
+      .map(row => row.split(','))
+      .filter(a => a.length > 1 && a[0] !== '')
+      
+    // 分配金込のリターン
+    let data1 = csv.slice(1).map((d, i) => [d[0], Number(d[1]), Number(i === 0 ? 0 : d[3])])
+    let sum = 0
+    data1 = data1.map((d, i) => {
+      sum += d[2]
+      return [d[0], d[1] + sum]
+    })
+    data1 = data1
+      .map((d, i) => [d[0], d[1], i === 0 ? 0 : d[1] - data1[i - 1][1]])
+      .sort((a, b) => b[0] > a[0] ? 1 : -1)
+    
+    let plus2Sum = 0, minus2Sum = 0
+    const data2 = data1.map((d, i) => {
+      plus2Sum += d[2] > 0 ? d[2] * d[2] : 0
+      minus2Sum += d[2] < 0 ? d[2] * d[2] : 0
+      
+      const upsidePotential = Math.sqrt(plus2Sum)                                                   // アップサイドポテンシャル
+      const downsideRisk = Math.sqrt(minus2Sum)                                                     // ダウンサイドリスク
+      const risk1 = upsidePotential/(upsidePotential + downsideRisk) // 0<=n<=1 1が優秀。0が劣等。
+      const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk                         // 大きいほうが優勢。だがこの指標はインフレするかも
+      return [risk1, risk2]
+    })
+  
+    const yearDays = 365.25
+    const data3 = [yearDays / 4, yearDays / 2, yearDays, 3 * yearDays, 5 * yearDays, 10 * yearDays]
+      .map(t => {
+        const n = parseInt(t)
+        return data2.length <= n ? ['', ''] : data2[n]
+      })
+
+    let data4 = [minkabu, link, '']
+    data3.forEach(d => {
+      d.forEach(v => data4.push(v))
+      data4.push('')
+    })
+
+    const data5 = [data4]
+    this.output(data5)
+  }
+  
+  output(data) {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this.sheetInfo.downsideRiskSheetName)
+    sheet.clear()
+    sheet.getRange(1, 1, data.length, data[0].length).setValues(data)    
+  }
+}
+      
 class FundsScoreCalculator {
   constructor() {
     this._sheetInfo = new SheetInfo() 
@@ -188,7 +251,7 @@ class FundsScoreCalculator {
       '野村世界業種別投資シリーズ（世界半導体株投資）', 'ＵＢＳ中国株式ファンド', '野村米国ブランド株投資（円コース）毎月分配型', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ｂコース',
       'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）',
     ]
-    this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託', 'ＭＨＡＭ・公社債投信.*月号']
+    this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
   }
       
   calc() {
@@ -218,10 +281,10 @@ class FundsScoreCalculator {
           const r = value[3*i + termSize - 1]
           const s = value[3*i + termSize]
           if (r !== '') {
-            fund.returns[i] = r
+            fund.returns[i] = Number(r)
           }
           if (s !== '') {
-            fund.sharps[i] = s
+            fund.sharps[i] = Number(s)
           }
         }
         this._funds.set(fund.link, fund)
@@ -237,6 +300,7 @@ class FundsScoreCalculator {
         }
         fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
         fund.scores[1][i] = fund.sharps[i]
+//        fund.scores[1][i] = fund.returns[i] !== 0 ? fund.sharps[i] / Math.abs(fund.returns[i]) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
         fund.scores[2][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i] // iDeCo版
       })
     })
@@ -502,6 +566,11 @@ function scrapingFunds11() {
 function calcFundsScore() {
   (new FundsScoreCalculator).calc()
 }
+
+function calcFundsDownsideRisk() {
+  (new FundsDownsideRiskCalculator).calc()
+}
+
 
 //function deleteAutoSheet() {
 //  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet()
