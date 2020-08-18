@@ -182,13 +182,17 @@ class FundsDownsideRiskCalculator {
   }
   
   calc() {
-    const allPrices = this._calcAllPrices()
-    this._calcRisks(allPrices)
+    const link = "https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download?isinCd=JP90C000ATW8&associFundCd=39311149"
+    const allPrices = this._calcAllPrices(link)
+    const risks = this._calcRisks(allPrices)
+
+    // 最終的にrisk1を採用するか、risk2を採用するかは要検討
+    risks.forEach((pp, i) => this.output(1, [risks]))
+    //allPrices.forEach((pp, i) => this.output((5 * i + 1), pp))
+
   }
   
-  _calcAllPrices() {
-    const minkabu = "minkabu"
-    const link = "https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download?isinCd=JP90C000ATW8&associFundCd=39311149"
+  _calcAllPrices(link) {
     const csv = UrlFetchApp
       .fetch(link)
       .getContentText('Shift-JIS')
@@ -247,7 +251,6 @@ class FundsDownsideRiskCalculator {
       })
     })
     
-//    prices2.forEach((pp, i) => this.output((5 * i + 1), pp))
     return prices2
   }
   
@@ -260,17 +263,14 @@ class FundsDownsideRiskCalculator {
         minus2Sum += diff < 0 ? diff * diff : 0
       })
     
-      const upsidePotential = Math.sqrt(plus2Sum)                            // アップサイドポテンシャル
-      const downsideRisk = Math.sqrt(minus2Sum)                              // ダウンサイドリスク
+      const upsidePotential = Math.sqrt(plus2Sum / (pp.length - 1))          // アップサイドポテンシャル
+      const downsideRisk = Math.sqrt(minus2Sum / (pp.length - 1))            // ダウンサイドリスク
       const risk1 = upsidePotential / (upsidePotential + downsideRisk)       // 0<=n<=1 1が優秀。0が劣等。
       const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk  // 大きいほうが優勢。だがこの指標はインフレするかも
-      return [upsidePotential, downsideRisk, risk1, risk2]
-    })
+      return [upsidePotential, downsideRisk, risk1, risk2, '']
+    }).flat()
+    
     console.log(risks)
-
-    risks.forEach((pp, i) => this.output(1, risks))
-
-    // 最終的にrisk1を採用するか、risk2を採用するかは要検討
     return risks
   }
   
