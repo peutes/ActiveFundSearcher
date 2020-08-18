@@ -1,5 +1,5 @@
 
-class MinkabuRankingScraper {
+class MorningRankingScraper {
   constructor() {
     this._sheetInfo = new SheetInfo()
     this._funds = new Map()
@@ -20,7 +20,7 @@ class MinkabuRankingScraper {
   }
 
   _fetchFunds() {
-    const baseLink = 'https://itf.minkabu.jp'
+    const baseLink = 'https://itf.Morning.jp'
     const pageNum = 180 // とりあえず3600件まで対応。
 
     let i=0;
@@ -58,14 +58,14 @@ class MinkabuRankingScraper {
     ]
     
     idecoIds.forEach(id => {
-      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
+      const link = 'https://itf.Morning.jp/fund/' + id + '/risk_cont'
       this._funds.set('/fund/' + id, new Fund(link, true))
     })
     console.log('_getIdecoFunds', this._funds.size)
   }
 }
 
-class MinkabuFundsScraper {
+class MorningFundsScraper {
   constructor(fundsSheetNum) {
     this._fundsSheetNum = fundsSheetNum
     this._sheetInfo = new SheetInfo()
@@ -92,7 +92,7 @@ class MinkabuFundsScraper {
 
   _fetchDetail() {
     const sharpNum = 12 // 12番目からのspanがシャープレシオ
-    console.log('getDetailFromMinkabu:' + this._funds.size)
+    console.log('getDetailFromMorning:' + this._funds.size)
     
     let i = 0
     this._funds.forEach(fund => {
@@ -135,7 +135,7 @@ class MinkabuFundsScraper {
   }
 }
 
-class MinkabuFundsScoreCalculator {
+class MorningFundsScoreCalculator {
   constructor() {
     this._sheetInfo = new SheetInfo() 
     this._funds = new Map()
