@@ -182,6 +182,11 @@ class FundsDownsideRiskCalculator {
   }
   
   calc() {
+    const allPrices = this._calcAllPrices()
+    this._calcRisks(allPrices)
+  }
+  
+  _calcAllPrices() {
     const minkabu = "minkabu"
     const link = "https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download?isinCd=JP90C000ATW8&associFundCd=39311149"
     const csv = UrlFetchApp
@@ -197,7 +202,7 @@ class FundsDownsideRiskCalculator {
     const now = new Date()
     const endDate = new Date(now.getFullYear(), now.getMonth(), 1)
     endDate.setSeconds(endDate.getSeconds() -1)
-    const startDates = (new Array(6)).fill().map(_ => new Date(now.getFullYear(), now.getMonth(), 1))
+    const startDates = (new Array(termSize)).fill().map(_ => new Date(now.getFullYear(), now.getMonth(), 1))
     startDates[0].setMonth(startDates[0].getMonth() - 3)
     startDates[1].setMonth(startDates[1].getMonth() - 6)
     startDates[2].setFullYear(startDates[2].getFullYear() - 1)
@@ -209,7 +214,7 @@ class FundsDownsideRiskCalculator {
     startDates.forEach(d => console.log(d.toLocaleString()))
       
     const baseColNum = 2
-    const prices = (new Array(6)).fill().map(_ => [])
+    const prices = (new Array(termSize)).fill().map(_ => [])
     csv.slice(1)
       .map(d => {
         const matched = /(\d+)年(\d+)月(\d+)日/.exec(d[0]);
@@ -219,7 +224,7 @@ class FundsDownsideRiskCalculator {
       .forEach((d, i) => {
         startDates.forEach((s, i) => {
           if (s <= d[0] && d[0] <= endDate) {
-            prices[i].push([d[2], d[1], d[0]]) // [分配金, 価格]
+            prices[i].push([d[2], d[1], d[0]]) // [分配金, 価格, 日付]
           }
         })
       })
@@ -234,58 +239,39 @@ class FundsDownsideRiskCalculator {
         const beforePrice = i === 0 ? price : pp[i - 1][1]
         beforeAll = i === 0 ? price : beforeAll
 
-        const rate = (price + div) / beforePrice
+        const rate = (price + div) / beforePrice // rateの計算に分配金が使われることに注意
         const allPrice = beforeAll * rate
       
         beforeAll = allPrice
-        return [div, price, allPrice, date]
+        return [allPrice, div, price, date]
       })
     })
     
-    prices2.forEach((p, i) => this.output((5 * i + 1), p))
+//    prices2.forEach((pp, i) => this.output((5 * i + 1), pp))
+    return prices2
+  }
+  
+  _calcRisks(allPrices) {
+    const risks = allPrices.map(pp => {
+      let plus2Sum = 0, minus2Sum = 0
+      pp.forEach((p, i) => {
+        const diff = i === 0 ? 0 : p[0] - pp[i - 1][0]
+        plus2Sum += diff > 0 ? diff * diff : 0
+        minus2Sum += diff < 0 ? diff * diff : 0
+      })
+    
+      const upsidePotential = Math.sqrt(plus2Sum)                            // アップサイドポテンシャル
+      const downsideRisk = Math.sqrt(minus2Sum)                              // ダウンサイドリスク
+      const risk1 = upsidePotential / (upsidePotential + downsideRisk)       // 0<=n<=1 1が優秀。0が劣等。
+      const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk  // 大きいほうが優勢。だがこの指標はインフレするかも
+      return [upsidePotential, downsideRisk, risk1, risk2]
+    })
+    console.log(risks)
 
-//    for (let k=0; k<yearDaysList.length; k++) {
-//      let beforeNewBase = 0
-//      data1 = data1.map((d, i) => {
-//        const newBase = i === 0 ? d[1] : beforeNewBase * (d[1] + d[baseColNum + k]) / data1[i - 1][1] // 分配金込基準価格
-//        beforeNewBase = newBase
-//        d[baseColNum + k] = newBase
-//        return d
-//      })
-//    }
-//    data1 = data1.sort((a, b) => b > a ? 1 : -1)
-//    data1 = data1.map((d, i) => {
-//      yearDaysList.forEach((day, j) => {
-//        if (i + 1 > day) {
-//          d[baseColNum + j] = 0
-//        }
-//      })
-//      return d
-//    })
-//  
-    // なにかおかしい。盛大にバグってる。
-//    let plus2Sum = 0, minus2Sum = 0
-//    yearDaysList.forEach((day, j) => {
-//      const returnNum = baseColNum + j
-//      data1.map((d, i) => {
-//        plus2Sum += d[returnNum] > 0 ? d[returnNum] * d[returnNum] : 0
-//        minus2Sum += d[returnNum] < 0 ? d[returnNum] * d[returnNum] : 0
-//      
-//        const upsidePotential = Math.sqrt(plus2Sum)                                                   // アップサイドポテンシャル
-//        const downsideRisk = Math.sqrt(minus2Sum)                                                     // ダウンサイドリスク
-//        const risk1 = upsidePotential/(upsidePotential + downsideRisk) // 0<=n<=1 1が優秀。0が劣等。
-//        const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk                         // 大きいほうが優勢。だがこの指標はインフレするかも
-//        data2[j * 3] = risk1
-//        data2[j * 3 + 1] = risk2
-//      })
-//    })
-//    let data4 = [minkabu, link, '']
-//    data3.forEach(d => {
-//      d.forEach(v => data4.push(v))
-//      data4.push('')
-//    })
-//
-//    const data3 = [data1]
+    risks.forEach((pp, i) => this.output(1, risks))
+
+    // 最終的にrisk1を採用するか、risk2を採用するかは要検討
+    return risks
   }
   
   output(colNum, data) {
