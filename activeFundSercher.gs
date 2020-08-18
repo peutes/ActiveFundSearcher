@@ -177,6 +177,8 @@ class FundsScraper {
 class FundsDownsideRiskCalculator {
   constructor() {
     this.sheetInfo = new SheetInfo()
+    this.sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this.sheetInfo.downsideRiskSheetName)
+    this.sheet.clear()
   }
   
   calc() {
@@ -188,51 +190,106 @@ class FundsDownsideRiskCalculator {
       .split('\r\n')
       .map(row => row.split(','))
       .filter(a => a.length > 1 && a[0] !== '')
-      
-    // 分配金込のリターン
-    let data1 = csv.slice(1).map((d, i) => [d[0], Number(d[1]), Number(i === 0 ? 0 : d[3])])
-    let sum = 0
-    data1 = data1.map((d, i) => {
-      sum += d[2]
-      return [d[0], d[1] + sum]
-    })
-    data1 = data1
-      .map((d, i) => [d[0], d[1], i === 0 ? 0 : d[1] - data1[i - 1][1]])
-      .sort((a, b) => b[0] > a[0] ? 1 : -1)
+
+    // 分配金込のリターン計算1
+    // TODO: 他に合わせて、月末からのカウントにする
+
+    const now = new Date()
+    const endDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    endDate.setSeconds(endDate.getSeconds() -1)
+    const startDates = (new Array(6)).fill().map(_ => new Date(now.getFullYear(), now.getMonth(), 1))
+    startDates[0].setMonth(startDates[0].getMonth() - 3)
+    startDates[1].setMonth(startDates[1].getMonth() - 6)
+    startDates[2].setFullYear(startDates[2].getFullYear() - 1)
+    startDates[3].setFullYear(startDates[3].getFullYear() - 3)
+    startDates[4].setFullYear(startDates[4].getFullYear() - 5)
+    startDates[5].setFullYear(startDates[5].getFullYear() - 10)
     
-    let plus2Sum = 0, minus2Sum = 0
-    const data2 = data1.map((d, i) => {
-      plus2Sum += d[2] > 0 ? d[2] * d[2] : 0
-      minus2Sum += d[2] < 0 ? d[2] * d[2] : 0
+    console.log(endDate.toLocaleString())
+    startDates.forEach(d => console.log(d.toLocaleString()))
       
-      const upsidePotential = Math.sqrt(plus2Sum)                                                   // アップサイドポテンシャル
-      const downsideRisk = Math.sqrt(minus2Sum)                                                     // ダウンサイドリスク
-      const risk1 = upsidePotential/(upsidePotential + downsideRisk) // 0<=n<=1 1が優秀。0が劣等。
-      const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk                         // 大きいほうが優勢。だがこの指標はインフレするかも
-      return [risk1, risk2]
-    })
-  
-    const yearDays = 365.25
-    const data3 = [yearDays / 4, yearDays / 2, yearDays, 3 * yearDays, 5 * yearDays, 10 * yearDays]
-      .map(t => {
-        const n = parseInt(t)
-        return data2.length <= n ? ['', ''] : data2[n]
+    const baseColNum = 2
+    const prices = (new Array(6)).fill().map(_ => [])
+    csv.slice(1)
+      .map(d => {
+        const matched = /(\d+)年(\d+)月(\d+)日/.exec(d[0]);
+        const date = new Date(matched[1] - 0, matched[2] - 1, matched[3] - 0)
+        return [date, Number(d[1]), Number(d[3])]
+      }).filter(d => d[0] <= endDate)
+      .forEach((d, i) => {
+        startDates.forEach((s, i) => {
+          if (s <= d[0] && d[0] <= endDate) {
+            prices[i].push([d[2], d[1], d[0]]) // [分配金, 価格]
+          }
+        })
       })
 
-    let data4 = [minkabu, link, '']
-    data3.forEach(d => {
-      d.forEach(v => data4.push(v))
-      data4.push('')
-    })
+      
+    const prices2 = prices.map((pp, ii) => {
+      let beforeAll = 0
+      return pp.map((p, i) => {
+        const div = p[0]
+        const price = p[1]
+        const date = p[2]
+        const beforePrice = i === 0 ? price : pp[i - 1][1]
+        beforeAll = i === 0 ? price : beforeAll
 
-    const data5 = [data4]
-    this.output(data5)
+        const rate = (price + div) / beforePrice
+        const allPrice = beforeAll * rate
+      
+        beforeAll = allPrice
+        return [div, price, allPrice, date]
+      })
+    })
+    
+    prices2.forEach((p, i) => this.output((5 * i + 1), p))
+
+//    for (let k=0; k<yearDaysList.length; k++) {
+//      let beforeNewBase = 0
+//      data1 = data1.map((d, i) => {
+//        const newBase = i === 0 ? d[1] : beforeNewBase * (d[1] + d[baseColNum + k]) / data1[i - 1][1] // 分配金込基準価格
+//        beforeNewBase = newBase
+//        d[baseColNum + k] = newBase
+//        return d
+//      })
+//    }
+//    data1 = data1.sort((a, b) => b > a ? 1 : -1)
+//    data1 = data1.map((d, i) => {
+//      yearDaysList.forEach((day, j) => {
+//        if (i + 1 > day) {
+//          d[baseColNum + j] = 0
+//        }
+//      })
+//      return d
+//    })
+//  
+    // なにかおかしい。盛大にバグってる。
+//    let plus2Sum = 0, minus2Sum = 0
+//    yearDaysList.forEach((day, j) => {
+//      const returnNum = baseColNum + j
+//      data1.map((d, i) => {
+//        plus2Sum += d[returnNum] > 0 ? d[returnNum] * d[returnNum] : 0
+//        minus2Sum += d[returnNum] < 0 ? d[returnNum] * d[returnNum] : 0
+//      
+//        const upsidePotential = Math.sqrt(plus2Sum)                                                   // アップサイドポテンシャル
+//        const downsideRisk = Math.sqrt(minus2Sum)                                                     // ダウンサイドリスク
+//        const risk1 = upsidePotential/(upsidePotential + downsideRisk) // 0<=n<=1 1が優秀。0が劣等。
+//        const risk2 = downsideRisk === 0 ? 0 : upsidePotential / downsideRisk                         // 大きいほうが優勢。だがこの指標はインフレするかも
+//        data2[j * 3] = risk1
+//        data2[j * 3 + 1] = risk2
+//      })
+//    })
+//    let data4 = [minkabu, link, '']
+//    data3.forEach(d => {
+//      d.forEach(v => data4.push(v))
+//      data4.push('')
+//    })
+//
+//    const data3 = [data1]
   }
   
-  output(data) {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this.sheetInfo.downsideRiskSheetName)
-    sheet.clear()
-    sheet.getRange(1, 1, data.length, data[0].length).setValues(data)    
+  output(colNum, data) {
+    this.sheet.getRange(1, colNum, data.length, data[0].length).setValues(data)    
   }
 }
       
@@ -249,7 +306,9 @@ class FundsScoreCalculator {
       'リスク抑制世界８資産バランスファンド（しあわせの一歩）', 'スパークス・ベスト・ピック・ファンド（ヘッジ型）', '世界８資産リスク分散バランスファンド（目標払出し型）（しあわせのしずく）',
       'グローバル・ハイクオリティ成長株式ファンド（年２回決算型）（限定為替ヘッジ）（未来の世界（年２回決算型））', 'ＪＰ日米バランスファンド（ＪＰ日米）', 'ＧＳフューチャー・テクノロジー・リーダーズＡコース（限定為替ヘッジ）（ｎｅｘｔＷＩＮ）',
       '野村世界業種別投資シリーズ（世界半導体株投資）', 'ＵＢＳ中国株式ファンド', '野村米国ブランド株投資（円コース）毎月分配型', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ｂコース',
-      'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）',
+      'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）', 'アライアンス・バーンスタイン・米国成長株投信Ｃコース毎月決算型（為替ヘッジあり）予想分配金提示型', 'アライアンス・バーンスタイン・米国成長株投信Ｄコース毎月決算型（為替ヘッジなし）予想分配金提示型',
+      'グローバル・フィンテック株式ファンド（為替ヘッジあり・年２回決算型）', 'グローバル・フィンテック株式ファンド（年２回決算型）', 'グローバル・スマート・イノベーション・オープン（年２回決算型）（ｉシフト）',
+      'グローバル・スマート・イノベーション・オープン（年２回決算型）為替ヘッジあり（ｉシフト（ヘッジあり））', '野村ＳＮＳ関連株投資Ｂコース',
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
   }
