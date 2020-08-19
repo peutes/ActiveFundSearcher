@@ -272,9 +272,9 @@ class MinkabuFundsScoreCalculator {
         if (score === null) {
           return null
         }
-
+    
         const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -4 : -1))  // 3ヶ月の i === 0 のときのみ、より分散を小さくする。
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -4 : -1))  // 3ヶ月の i === 0 のときのみ、より分散を小さくする。 -3 は大きすぎたので絶対に無理
       })
     })
 
@@ -283,7 +283,7 @@ class MinkabuFundsScoreCalculator {
       fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
     })
 
-    const topPer = 100 // 100位がギリギリな雰囲気あるので、今後の展開によっては90位、80位でもよいかも？
+    const topPer = 100 // TODO: 80位でもいいかも
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
       return scores[topPer]
@@ -291,7 +291,8 @@ class MinkabuFundsScoreCalculator {
     
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        return 5 * (score === null ? (n === 2 ? 0 : initList[i]) : score)
+        const init = n === 2 ? 0 : initList[i]
+        return 5 * (score === null ? init : score)
       })
     })
     
