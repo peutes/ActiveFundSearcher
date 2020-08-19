@@ -1,8 +1,4 @@
 
-function calcFundsDownsideRisk() {
-  (new FundsDownsideRiskCalculator).calc()
-}
-
 class FundsDownsideRiskCalculator {
   constructor() {
     this.sheetInfo = new SheetInfo()
@@ -106,4 +102,9 @@ class FundsDownsideRiskCalculator {
   output(colNum, data) {
     this.sheet.getRange(1, colNum, data.length, data[0].length).setValues(data)    
   }
+}
+
+
+function calcFundsDownsideRisk() {
+  (new FundsDownsideRiskCalculator).calc()
 }

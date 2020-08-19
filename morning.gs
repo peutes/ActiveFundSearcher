@@ -1,9 +1,3 @@
-// morning
-
-function scrapingMorningRanking() {
-  (new MorningRankingScraper()).scraping()
-}
-
 
 class MorningRankingScraper {
   constructor() {
@@ -27,7 +21,8 @@ class MorningRankingScraper {
   }
 
   _fetchFunds() {
-    const rankingLink = this.baseLink + 'DetailSearchResult.do?mode=2&selectedDcSmaEtfSearchKbn=on' // DCとETF系を基本除外
+    const rankingLink = this.baseLink + 'DetailSearchResult.do?mode=2'
+//    const rankingLink = this.baseLink + 'DetailSearchResult.do?mode=2&selectedDcSmaEtfSearchKbn=on' // DCとETF系を基本除外 あまり多すぎて辛かったらこっちにする
     const fundReturnLink = this.baseLink + 'Return.do?fnc='
     
     const html0 = UrlFetchApp.fetch(rankingLink).getContentText('Shift-JIS')
@@ -406,4 +401,9 @@ class MorningFundsScoreCalculator {
     })
     range.setBackgrounds(rgbs)
   }
+}
+
+
+function scrapingMorningRanking() {
+  (new MorningRankingScraper()).scraping()
 }
