@@ -146,15 +146,14 @@ class MinkabuFundsScoreCalculator {
     this._sheetInfo = new SheetInfo() 
     this._funds = new Map()
     this._ignoreList = [
-      "DIAM新興市場日本株ファンド", "FANG+インデックス・オープン", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "ダイワ/バリュー・パートナーズ・チャイナ・イノベーター・ファンド", "野村世界業種別投資シリーズ(世界半導体株投資)",
-      "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)", "三菱UFJ先進国高金利債券ファンド(毎月決算型)(グローバル・トップ)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)", "野村クラウドコンピューティング&スマートグリッド関連株投信Aコース",
-      "野村SNS関連株投資Aコース", "USテクノロジー・イノベーターズ・ファンド(為替ヘッジあり)", "野村米国ブランド株投資(円コース)毎月分配型", "USテクノロジー・イノベーターズ・ファンド", "グローバル全生物ゲノム株式ファンド(1年決算型)",
-      "野村米国ブランド株投資(円コース)年2回決算型", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
-      "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "スパークス・ベスト・ピック・ファンド(ヘッジ型)", "世界8資産リスク分散バランスファンド(目標払出し型)(しあわせのしずく)",  "JP日米バランスファンド(JP日米)", "野村SNS関連株投資Bコース",
-      "グローバル・ハイクオリティ成長株式ファンド(年2回決算型)(限定為替ヘッジ)(未来の世界(年2回決算型))", "GSフューチャー・テクノロジー・リーダーズAコース(限定為替ヘッジ)(nextWIN)", "野村世界業種別投資シリーズ(世界半導体株投資)",
-      "UBS中国株式ファンド", "野村米国ブランド株投資(円コース)毎月分配型", "野村クラウドコンピューティング&スマートグリッド関連株投信Bコース", "UBS中国A株ファンド(年1回決算型)(桃源郷)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)",
-      "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型", "グローバル・フィンテック株式ファンド(年2回決算型)",
-       "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))", 
+      "DIAM新興市場日本株ファンド", "FANG+インデックス・オープン", "野村世界業種別投資シリーズ(世界半導体株投資)", "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型",
+      "野村クラウドコンピューティング&スマートグリッド関連株投信Aコース", "野村クラウドコンピューティング&スマートグリッド関連株投信Bコース", "野村米国ブランド株投資(円コース)毎月分配型",
+      "UBS中国株式ファンド", "ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）", "野村SNS関連株投資Aコース", "野村米国ブランド株投資(円コース)年2回決算型", "ダイワ/バリュー・パートナーズ・チャイナ・イノベーター・ファンド",
+      "USテクノロジー・イノベーターズ・ファンド(為替ヘッジあり)", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
+      "野村SNS関連株投資Bコース", "USテクノロジー・イノベーターズ・ファンド", "UBS中国A株ファンド(年1回決算型)(桃源郷)", "UBS次世代テクノロジー・ファンド",
+      "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・フィンテック株式ファンド(年2回決算型)", "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)",
+      "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "インデックスファンド海外債券ヘッジあり(DC専用)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)",
+      "三菱UFJ先進国高金利債券ファンド(毎月決算型)(グローバル・トップ)", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型",
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
       
@@ -164,6 +163,7 @@ class MinkabuFundsScoreCalculator {
       
   calc() {
     this._fetchFunds()
+    this._decidePolicy()
     this._calcScores()
     this._output()
   }
@@ -201,18 +201,6 @@ class MinkabuFundsScoreCalculator {
   }
   
   _calcScores() {
-    this._funds.forEach(fund => {
-      fund.returns.forEach((r, i) => {
-        if (r === null || fund.sharps[i] === null) {
-          return
-        }
-        fund.scores[0][i] = Math.abs(fund.returns[i]) * fund.sharps[i]
-        fund.scores[1][i] = fund.sharps[i]
-//        fund.scores[1][i] = fund.returns[i] !== 0 ? fund.sharps[i] / Math.abs(fund.returns[i]) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
-        fund.scores[2][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i] // iDeCo版
-      })
-    })
-
     for (let n=0; n<scoresSize; n++) {
       const minList1 = this._getScoresList(n).map(s => Math.min(...s))
       // バグ埋め込みやすいので消すな。score === null のワナ
@@ -225,14 +213,29 @@ class MinkabuFundsScoreCalculator {
         fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(score + Math.E)))
       })
       
-//      // 下位を外れ値として切り捨てる。正規化が安定する。試行錯誤の上、100で固定。
-//      const minList2 = this._getScoresList(n).map(scores => (scores.sort((a, b) => a - b))[parseInt(scores.length/100)])
-//      this._funds.forEach(fund => {
-//        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score <= minList2[i] ? minList2[i] : score)
-//      })
-      
       this._normalizeAndInit(n)
     }
+  }
+  
+  _decidePolicy() {
+    this._funds.forEach(fund => {
+      fund.returns.forEach((r, i) => {
+        if (r === null || fund.sharps[i] === null) {
+          return
+        }
+      
+        // リターンxシャープレシオ版と、シャープレシオ版の融合版。掛け算したらうまくいった。
+        fund.scores[0][i] = fund.returns[i] * Math.pow(fund.sharps[i], 2)
+        
+        if (scoresSize > 1) {
+          fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
+//        fund.scores[1][i] = fund.returns[i] !== 0 ? fund.sharps[i] / Math.abs(fund.returns[i]) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
+        }
+        if (scoresSize > 2) {
+          fund.scores[2][i] = fund.returns[i] * Math.pow(fund.sharps[i], 2) // iDeCo版
+        }
+      })
+    })
   }
     
   _getScoresList(n) {
@@ -272,8 +275,8 @@ class MinkabuFundsScoreCalculator {
           return null
         }
     
-        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12/3 : (i === 1 ? -12/6 : -1)))  // 3ヶ月の i === 0 のときのみ、より分散を小さくする。 -3 は大きすぎたので絶対に無理
+        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算すると上方の偏りが消えてうまくいく。最下位層のデータが悪さをしてるのかも？
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12/3 : (i === 1 ? -12/6 : -1)))
       })
     })
 
@@ -282,9 +285,9 @@ class MinkabuFundsScoreCalculator {
       fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
     })
 
-    this._calcRank(n)
+    const rank = n === 2 ? 0 : this._calcRank(n)
+    console.log('rank', rank)
     
-    const rank = 30
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
       return scores[rank]
@@ -293,7 +296,7 @@ class MinkabuFundsScoreCalculator {
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         const init = n === 2 ? 0 : initList[i]
-        return score === null ? init : score
+        return 5 * (score === null ? init : score)
       })
     })
         
@@ -309,11 +312,12 @@ class MinkabuFundsScoreCalculator {
     })
   }
   
+  // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
   _calcRank(n) {
-    if (n!==0) return // debug
-    
-    let min = Number.MAX_SAFE_INTEGER, minRank = 0
-    for (let rank=0; rank<200; rank++) {
+    const kMax = purchaseNum     // 各期間のランキングをどこまで見るか？
+
+    let max = 0, finalRank = 0, rankMax = 200
+    for (let rank=0; rank<rankMax; rank++) {
       const initList = this._getScoresList(n).map((scores, i) => {
         scores.sort((a, b) => b - a)
         return scores[rank]
@@ -321,44 +325,51 @@ class MinkabuFundsScoreCalculator {
     
       let scoresList = []
       this._funds.forEach(fund => {
-        scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
+        if (!fund.ignore) {
+          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
+        }
       })
 
+      // ラストはトータルスコア
       scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
-        
-      for (let i=0; i<scoresList.length - 1; i++) {
-        let k = 20
+      
+      for (let i=0; i<scoresList[0].length-1; i++) {
+        let k = kMax
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
-          scores[i] = 0
           if (k > 0 && scores[i] !== initList[i]) {
-            scores[i] = k // 1じゃなくてkにしてみる
+            scores[i] = 1
             k--
+          } else {
+            scores[i] = 0
           }
           return scores
         })
       }
-      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, 10)
+      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, purchaseNum)
 
 //      this.logSheet.getRange(1, 1, scoresList.length, scoresList[0].length).setValues(scoresList)
 
-      let sum1 = 0, sum2 = 0
+      let sum = 0
       const indicator = scoresList.map(scores => {
-        sum1 += scores[0] + scores[1] + scores[2]
-        sum2 += scores[3] + scores[4] + scores[5]
+        for (let i=0; i<scoresList[0].length - 1; i++) {
+          sum += scores[i]
+        }
       })
-      const res = Math.abs(sum1 - sum2)
-      
-      if (res < min) {
-        minRank = rank
-        min = res
+      if (sum > max) {
+        finalRank = rank
+        max = sum
       }
 
-      const l = [[rank, sum1, sum2, sum1 + sum2, res, sum2 - sum1, sum1 / sum2]]
-      this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
+      if (n === 0) {
+        const l = [[rank, sum]]
+        this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
+      }
     }
 
-    console.log('rank_end', n, minRank, min)    
-    return minRank
+    this.logSheet.getRange(rankMax + 2, n + 1).setValue(finalRank)
+    console.log('rank_end', n, finalRank)    
+
+    return finalRank
   }
   
   _output() { 
@@ -401,7 +412,7 @@ class MinkabuFundsScoreCalculator {
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
-    const topRow = ['リンク', '日付', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+    const topRow = ['リンク', '日付', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '',  'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年']
     const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
     topRowRange.setValues([topRow])
     topRowRange.setBackgrounds([topRow.map(r => 'silver')])
@@ -413,7 +424,7 @@ class MinkabuFundsScoreCalculator {
 
     allRange.sort({column: totalScoreCol, ascending: false})
     const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
-    this._setHighRankColor(10, nameRange)
+    this._setHighRankColor(nameRange)
 
     for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + termSize) - 1; i++) {
       let c = false
@@ -445,14 +456,14 @@ class MinkabuFundsScoreCalculator {
     }
   }
 
-  _setHighRankColor(max, range) {
+  _setHighRankColor(range) {
     const white = '#ffffff' // needs RGB color
     const aqua = 'aqua'
 
     let i = 0
     const rgbs = range.getBackgrounds().map(rows => {
       return rows.map(rgb => {
-        if (i >= max || rgb !== white) {
+        if (i >= purchaseNum || rgb !== white) {
           return rgb
         }
         i++;

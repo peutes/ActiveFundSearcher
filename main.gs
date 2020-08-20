@@ -1,6 +1,7 @@
 const termSize = 6
 const scoresSize = 3
 const fundsSheetMax = 12
+const purchaseNum = 20
 
 class SheetInfo {
   constructor() {
