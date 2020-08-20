@@ -10,9 +10,9 @@ class SheetInfo {
       this.fundsSheetNames.push('Funds' + i)
     }
     this.downsideRiskSheetName = 'Downside'
+    this.logSheetName = 'Log'
     
-    const minkabuID = '11yrtPbeAOgzvvXPH-pljaV_5bKqp4kIJN4fE6yYaPBY'
-    this.minkabuSpreadSheet = SpreadsheetApp.openById(minkabuID);
+    this.minkabuSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
   }
   
   getScoreSheetName() {

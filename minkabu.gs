@@ -100,7 +100,7 @@ class MinkabuFundsScraper {
       const table = Parser.data(html).from('<table class="md_table">').to('</table>').build()
       const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     
-      fund.name = Parser.data(html).from('<p class="stock_name">').to('</p>').build()
+      fund.name = this._toHankaku(Parser.data(html).from('<p class="stock_name">').to('</p>').build())
       for (let i=0; i<termSize; i++) {
         const result1 = spanList[i].replace(/%/, '')
         const result2 = spanList[sharpNum + i].replace(/%/, '')
@@ -133,6 +133,12 @@ class MinkabuFundsScraper {
     sheet.autoResizeColumns(2, 4)
     console.log('_output')
   }
+      
+  _toHankaku(str) {
+    return str.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+    }).replace(/”/g, "\"").replace(/’/g, "'").replace(/‘/g, "`").replace(/￥/g, "\\").replace(/　/g, " ").replace(/〜/g, "~")
+  }
 }
 
 class MinkabuFundsScoreCalculator {
@@ -140,19 +146,20 @@ class MinkabuFundsScoreCalculator {
     this._sheetInfo = new SheetInfo() 
     this._funds = new Map()
     this._ignoreList = [
-      'ＤＩＡＭ新興市場日本株ファンド', 'ＦＡＮＧ＋インデックス・オープン', 'グローバル・プロスペクティブ・ファンド（イノベーティブ・フューチャー）', 'ダイワ／バリュー・パートナーズ・チャイナ・イノベーター・ファンド',
-      '野村世界業種別投資シリーズ（世界半導体株投資）', '東京海上Ｒｏｇｇｅニッポン海外債券ファンド（為替ヘッジあり）', '三菱ＵＦＪ先進国高金利債券ファンド（毎月決算型）（グローバル・トップ）',
-      '三菱ＵＦＪ先進国高金利債券ファンド（年１回決算型）（グローバル・トップ年１）', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ａコース', '野村ＳＮＳ関連株投資Ａコース', 'ＵＳテクノロジー・イノベーターズ・ファンド（為替ヘッジあり）',
-      '野村米国ブランド株投資（円コース）毎月分配型', 'ＵＳテクノロジー・イノベーターズ・ファンド', 'グローバル全生物ゲノム株式ファンド（１年決算型）', '野村米国ブランド株投資（円コース）年２回決算型',
-      'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））', 'グローバル・モビリティ・サービス株式ファンド（１年決算型）（グローバルＭａａＳ（１年決算型））',
-      'リスク抑制世界８資産バランスファンド（しあわせの一歩）', 'スパークス・ベスト・ピック・ファンド（ヘッジ型）', '世界８資産リスク分散バランスファンド（目標払出し型）（しあわせのしずく）',
-      'グローバル・ハイクオリティ成長株式ファンド（年２回決算型）（限定為替ヘッジ）（未来の世界（年２回決算型））', 'ＪＰ日米バランスファンド（ＪＰ日米）', 'ＧＳフューチャー・テクノロジー・リーダーズＡコース（限定為替ヘッジ）（ｎｅｘｔＷＩＮ）',
-      '野村世界業種別投資シリーズ（世界半導体株投資）', 'ＵＢＳ中国株式ファンド', '野村米国ブランド株投資（円コース）毎月分配型', '野村クラウドコンピューティング＆スマートグリッド関連株投信Ｂコース',
-      'ＵＢＳ中国Ａ株ファンド（年１回決算型）（桃源郷）', 'アライアンス・バーンスタイン・米国成長株投信Ｃコース毎月決算型（為替ヘッジあり）予想分配金提示型', 'アライアンス・バーンスタイン・米国成長株投信Ｄコース毎月決算型（為替ヘッジなし）予想分配金提示型',
-      'グローバル・フィンテック株式ファンド（為替ヘッジあり・年２回決算型）', 'グローバル・フィンテック株式ファンド（年２回決算型）', 'グローバル・スマート・イノベーション・オープン（年２回決算型）（ｉシフト）',
-      'グローバル・スマート・イノベーション・オープン（年２回決算型）為替ヘッジあり（ｉシフト（ヘッジあり））', '野村ＳＮＳ関連株投資Ｂコース',
+      "DIAM新興市場日本株ファンド", "FANG+インデックス・オープン", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "ダイワ/バリュー・パートナーズ・チャイナ・イノベーター・ファンド", "野村世界業種別投資シリーズ(世界半導体株投資)",
+      "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)", "三菱UFJ先進国高金利債券ファンド(毎月決算型)(グローバル・トップ)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)", "野村クラウドコンピューティング&スマートグリッド関連株投信Aコース",
+      "野村SNS関連株投資Aコース", "USテクノロジー・イノベーターズ・ファンド(為替ヘッジあり)", "野村米国ブランド株投資(円コース)毎月分配型", "USテクノロジー・イノベーターズ・ファンド", "グローバル全生物ゲノム株式ファンド(1年決算型)",
+      "野村米国ブランド株投資(円コース)年2回決算型", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
+      "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "スパークス・ベスト・ピック・ファンド(ヘッジ型)", "世界8資産リスク分散バランスファンド(目標払出し型)(しあわせのしずく)",  "JP日米バランスファンド(JP日米)", "野村SNS関連株投資Bコース",
+      "グローバル・ハイクオリティ成長株式ファンド(年2回決算型)(限定為替ヘッジ)(未来の世界(年2回決算型))", "GSフューチャー・テクノロジー・リーダーズAコース(限定為替ヘッジ)(nextWIN)", "野村世界業種別投資シリーズ(世界半導体株投資)",
+      "UBS中国株式ファンド", "野村米国ブランド株投資(円コース)毎月分配型", "野村クラウドコンピューティング&スマートグリッド関連株投信Bコース", "UBS中国A株ファンド(年1回決算型)(桃源郷)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)",
+      "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型", "グローバル・フィンテック株式ファンド(年2回決算型)",
+       "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))", 
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
+      
+    this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
+    this.logSheet.clear()
   }
       
   calc() {
@@ -224,11 +231,7 @@ class MinkabuFundsScoreCalculator {
 //        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score <= minList2[i] ? minList2[i] : score)
 //      })
       
-      this._normalizeAndInit(n, 100, 0)
-      
-      this._funds.forEach(fund => {
-        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score)
-      })
+      this._normalizeAndInit(n)
     }
   }
     
@@ -239,14 +242,10 @@ class MinkabuFundsScoreCalculator {
   }
 
   _analysis(scoresList) {
-    const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v))
+    const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v, 0))
     const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
     const srdList = scoresList.map((scores, i) => {
-      let sum = 0
-      scores.forEach(score => {
-        sum += Math.pow(score - aveList[i], 2)
-      })
-      return Math.sqrt(sum / (scores.length - 1))
+      return Math.sqrt(scores.reduce((acc, v) => acc + Math.pow(v - aveList[i], 2), 0) / (scores.length - 1))
     })
     
 //    const maxList = scoresList.map(s => Math.max(...s))
@@ -261,7 +260,7 @@ class MinkabuFundsScoreCalculator {
     return [aveList, srdList, lowList]
   }
 
-  _normalizeAndInit(n, max, min) {
+  _normalizeAndInit(n) {
     console.log('normalizeAndInit')
 
     // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→下位1%を切り捨て減算→正規化→中心極限定理の端っこの部分を抽出
@@ -274,7 +273,7 @@ class MinkabuFundsScoreCalculator {
         }
     
         const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算するとうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -4 : -1))  // 3ヶ月の i === 0 のときのみ、より分散を小さくする。 -3 は大きすぎたので絶対に無理
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12/3 : (i === 1 ? -12/6 : -1)))  // 3ヶ月の i === 0 のときのみ、より分散を小さくする。 -3 は大きすぎたので絶対に無理
       })
     })
 
@@ -283,25 +282,83 @@ class MinkabuFundsScoreCalculator {
       fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
     })
 
-    const topPer = 100 // TODO: 80位でもいいかも
+    this._calcRank(n)
+    
+    const rank = 30
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
-      return scores[topPer]
+      return scores[rank]
     })
-    
+
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
         const init = n === 2 ? 0 : initList[i]
-        return 5 * (score === null ? init : score)
+        return score === null ? init : score
       })
     })
-    
+        
     const ignoreNum = -100
     this._funds.forEach(fund => {
       if (n === 2) {
         fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : ignoreNum)
       }
-    })    
+    })
+    
+    this._funds.forEach(fund => {
+      fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
+    })
+  }
+  
+  _calcRank(n) {
+    if (n!==0) return // debug
+    
+    let min = Number.MAX_SAFE_INTEGER, minRank = 0
+    for (let rank=0; rank<200; rank++) {
+      const initList = this._getScoresList(n).map((scores, i) => {
+        scores.sort((a, b) => b - a)
+        return scores[rank]
+      })
+    
+      let scoresList = []
+      this._funds.forEach(fund => {
+        scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
+      })
+
+      scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
+        
+      for (let i=0; i<scoresList.length - 1; i++) {
+        let k = 20
+        scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
+          scores[i] = 0
+          if (k > 0 && scores[i] !== initList[i]) {
+            scores[i] = k // 1じゃなくてkにしてみる
+            k--
+          }
+          return scores
+        })
+      }
+      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, 10)
+
+//      this.logSheet.getRange(1, 1, scoresList.length, scoresList[0].length).setValues(scoresList)
+
+      let sum1 = 0, sum2 = 0
+      const indicator = scoresList.map(scores => {
+        sum1 += scores[0] + scores[1] + scores[2]
+        sum2 += scores[3] + scores[4] + scores[5]
+      })
+      const res = Math.abs(sum1 - sum2)
+      
+      if (res < min) {
+        minRank = rank
+        min = res
+      }
+
+      const l = [[rank, sum1, sum2, sum1 + sum2, res, sum2 - sum1, sum1 / sum2]]
+      this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
+    }
+
+    console.log('rank_end', n, minRank, min)    
+    return minRank
   }
   
   _output() { 
@@ -342,6 +399,12 @@ class MinkabuFundsScoreCalculator {
     const allRange = sheet.getDataRange()
     this._setColors(sheet, allRange, totalScoreCol, nameCol)
     allRange.sort({column: totalScoreCol, ascending: false})
+    
+    sheet.insertRowBefore(1)
+    const topRow = ['リンク', '日付', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+    const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
+    topRowRange.setValues([topRow])
+    topRowRange.setBackgrounds([topRow.map(r => 'silver')])
   }
 
   _setColors(sheet, allRange, totalScoreCol, nameCol) {
