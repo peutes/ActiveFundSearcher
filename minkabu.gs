@@ -50,11 +50,11 @@ class MinkabuRankingScraper {
   }
   
   _getIdecoFunds() {
-    const idecoIds = [
-      '03311112', '25311177', '93311164', '32311984', '0131F122', '0131102B', '8031114C', 'AA311169', '0231802C', '0131Q154', '89313121', '89315121', '65311058', '89312121', '0231402C',
-      '89314121', '0231602C', '68311003', '0231502C', '0231202C', '0331109C', '0231702C', '8931111A', '89311025', '2931116A', '0331110A', '64315021', '64311081', '0431Q169', '89311135',
-      '89313135', '0331112A', '89311164', '9C31116A', '7931211C', '79314169', '2931216A', '89312135', '0431X169', '29316153', '8931217C', '8931118A', 'AN31118A', '96311073', '96312073',
-      '0431U169', '04316188', '04316186', '2931113C', '29314136', '2931316B', '0131C18A', '03317172', '03318172', '0331C177', '03319172', '0331A172', '03316183', '03312175', '03311187',
+    const idecoIds = [      
+      '8031114C', '64311042', '89311164', '32311984', '79313008', '9C31116A', 'AA311169', '4731198A', '89311025', '6831100B', '47311988', '29311041', '2931116A', '0131Q154', '7931211C', '93311164', 
+      '65311058', '68311003', '89313135', '89311135', '25311177', '0431Q169', '64315021', '29316153', '0231202C', '20312061', '8931111A', '89312135', '0331109C', '01311021', '0331112A', '0331N029', 
+      'AN311166', '89314135', '0231402C', '0131102B', '79312024', '0331110A', '0131F122', '2931201B', '0231502C', '0231602C', '0231702C', '0231802C', '0431X169', '64311081', '03312163', '03313163', 
+      '03314163', '03315163', '03316163', '89313121', '89312121', '89314121', '89315121', '4731304C', '89315135', '29311078', '79314169', '01315087', '03311112', '04314086', 
     ]
     
     idecoIds.forEach(id => {
@@ -152,8 +152,9 @@ class MinkabuFundsScoreCalculator {
       "USテクノロジー・イノベーターズ・ファンド(為替ヘッジあり)", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
       "野村SNS関連株投資Bコース", "USテクノロジー・イノベーターズ・ファンド", "UBS中国A株ファンド(年1回決算型)(桃源郷)", "UBS次世代テクノロジー・ファンド",
       "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・フィンテック株式ファンド(年2回決算型)", "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)",
-      "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "インデックスファンド海外債券ヘッジあり(DC専用)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)",
+      "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)",
       "三菱UFJ先進国高金利債券ファンド(毎月決算型)(グローバル・トップ)", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型",
+      "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", 
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
       
@@ -200,6 +201,26 @@ class MinkabuFundsScoreCalculator {
     })
   }
   
+  _decidePolicy() {
+    this._funds.forEach(fund => {
+      fund.returns.forEach((r, i) => {
+        if (r === null || fund.sharps[i] === null) {
+          return
+        }
+      
+        fund.scores[0][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
+        
+        if (scoresSize > 1) {
+          fund.scores[1][i] = Math.log(Math.abs(r) + Math.E) * fund.sharps[i]
+//        fund.scores[1][i] = r !== 0 ? fund.sharps[i] / Math.abs(r) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
+        }
+        if (scoresSize > 2) {
+          fund.scores[2][i] = fund.scores[0][i] // iDeCo版
+        }
+      })
+    })
+  }
+    
   _calcScores() {
     for (let n=0; n<scoresSize; n++) {
       const minList1 = this._getScoresList(n).map(s => Math.min(...s))
@@ -213,31 +234,15 @@ class MinkabuFundsScoreCalculator {
         fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(score + Math.E)))
       })
       
-      this._normalizeAndInit(n)
+      const isIdecoScores = n === 2
+      this._standardizeAndInit(n, isIdecoScores)
+      
+      this._funds.forEach(fund => {
+        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
+      })
     }
   }
   
-  _decidePolicy() {
-    this._funds.forEach(fund => {
-      fund.returns.forEach((r, i) => {
-        if (r === null || fund.sharps[i] === null) {
-          return
-        }
-      
-        // リターンxシャープレシオ版と、シャープレシオ版の融合版。掛け算したらうまくいった。
-        fund.scores[0][i] = fund.returns[i] * Math.pow(fund.sharps[i], 2)
-        
-        if (scoresSize > 1) {
-          fund.scores[1][i] = Math.sqrt(Math.abs(fund.returns[i])) * fund.sharps[i]
-//        fund.scores[1][i] = fund.returns[i] !== 0 ? fund.sharps[i] / Math.abs(fund.returns[i]) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
-        }
-        if (scoresSize > 2) {
-          fund.scores[2][i] = fund.returns[i] * Math.pow(fund.sharps[i], 2) // iDeCo版
-        }
-      })
-    })
-  }
-    
   _getScoresList(n) {
     const scoresList = []
     this._funds.forEach(fund => scoresList.push(fund.scores[n]))
@@ -263,8 +268,8 @@ class MinkabuFundsScoreCalculator {
     return [aveList, srdList, lowList]
   }
 
-  _normalizeAndInit(n) {
-    console.log('normalizeAndInit')
+  _standardizeAndInit(n, isIdecoScores) {
+    console.log('_standardizeAndInit')
 
     // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→下位1%を切り捨て減算→正規化→中心極限定理の端っこの部分を抽出
     
@@ -276,17 +281,20 @@ class MinkabuFundsScoreCalculator {
         }
     
         const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算すると上方の偏りが消えてうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12/3 : (i === 1 ? -12/6 : -1)))
+        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12 / 3 : (i === 1 ? -12 / 6 : -1)))
       })
     })
 
+    const ignoreNum = -100
     const [aveList2, srdList2] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
-      fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList2[i]) / srdList2[i])
+      fund.scores[n] = fund.scores[n].map((score, i) => {
+        const s = score === null ? null : (score - aveList2[i]) / srdList2[i]
+        return isIdecoScores && !fund.isIdeco ? ignoreNum : s
+      })
     })
 
-    const rank = n === 2 ? 0 : this._calcRank(n)
-    console.log('rank', rank)
+    const rank = this._calcRank(n, isIdecoScores ? idecoPurchaseNum : purchaseNum)
     
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
@@ -295,26 +303,14 @@ class MinkabuFundsScoreCalculator {
 
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        const init = n === 2 ? 0 : initList[i]
-        return 5 * (score === null ? init : score)
+        return 5 * (score === null ? initList[i] : score)
       })
-    })
-        
-    const ignoreNum = -100
-    this._funds.forEach(fund => {
-      if (n === 2) {
-        fund.scores[n] = fund.scores[n].map(s => fund.isIdeco ? s : ignoreNum)
-      }
-    })
-    
-    this._funds.forEach(fund => {
-      fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
     })
   }
   
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
-  _calcRank(n) {
-    const kMax = purchaseNum     // 各期間のランキングをどこまで見るか？
+  _calcRank(n, selectedNum) {
+    const kMax = selectedNum     // 各期間のランキングをどこまで見るか？
 
     let max = 0, finalRank = 0, rankMax = 200
     for (let rank=0; rank<rankMax; rank++) {
@@ -323,6 +319,7 @@ class MinkabuFundsScoreCalculator {
         return scores[rank]
       })
     
+      // 3ヶ月は邪魔なので除去する！
       let scoresList = []
       this._funds.forEach(fund => {
         if (!fund.ignore) {
@@ -345,7 +342,7 @@ class MinkabuFundsScoreCalculator {
           return scores
         })
       }
-      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, purchaseNum)
+      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, selectedNum)
 
 //      this.logSheet.getRange(1, 1, scoresList.length, scoresList[0].length).setValues(scoresList)
 
@@ -367,7 +364,7 @@ class MinkabuFundsScoreCalculator {
     }
 
     this.logSheet.getRange(rankMax + 2, n + 1).setValue(finalRank)
-    console.log('rank_end', n, finalRank)    
+    console.log('_calcRank:rank', finalRank)    
 
     return finalRank
   }
@@ -390,10 +387,11 @@ class MinkabuFundsScoreCalculator {
       data.push(row)
     })
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
+    const lastRow = sheet.getLastRow()
 
     sheet.autoResizeColumn(nameCol)
     for (let i=0; i<scoresSize; i++) {
-      sheet.getRange(1, totalScoreCol + i * (termSize + 2), sheet.getLastRow()).setFontWeight("bold")
+      sheet.getRange(1, totalScoreCol + i * (termSize + 2), lastRow).setFontWeight("bold")
     }
 
     let n = 1
@@ -408,7 +406,7 @@ class MinkabuFundsScoreCalculator {
     })
 
     const allRange = sheet.getDataRange()
-    this._setColors(sheet, allRange, totalScoreCol, nameCol)
+    this._setColors(sheet, allRange, totalScoreCol, nameCol, lastRow)
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
@@ -418,12 +416,12 @@ class MinkabuFundsScoreCalculator {
     topRowRange.setBackgrounds([topRow.map(r => 'silver')])
   }
 
-  _setColors(sheet, allRange, totalScoreCol, nameCol) {
+  _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
     const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white', ' white']
 
     allRange.sort({column: totalScoreCol, ascending: false})
-    const nameRange = sheet.getRange(1, nameCol, sheet.getLastRow())
+    const nameRange = sheet.getRange(1, nameCol, lastRow)
     this._setHighRankColor(nameRange)
 
     for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + termSize) - 1; i++) {
