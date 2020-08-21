@@ -154,7 +154,13 @@ class MinkabuFundsScoreCalculator {
       "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・フィンテック株式ファンド(年2回決算型)", "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)",
       "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)",
       "三菱UFJ先進国高金利債券ファンド(毎月決算型)(グローバル・トップ)", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型",
-      "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", 
+      "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", "グローバルAIファンド(予想分配金提示型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))",
+      "GSフューチャー・テクノロジー・リーダーズAコース(限定為替ヘッジ)(nextWIN)", "グローバル全生物ゲノム株式ファンド(1年決算型)", "世界8資産リスク分散バランスファンド(目標払出し型)(しあわせのしずく)",
+      "グローバル・ハイクオリティ成長株式ファンド(年2回決算型)(限定為替ヘッジ)(未来の世界(年2回決算型))", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)",
+      "野村米国ブランド株投資(米ドルコース)毎月分配型", "グローバルAIファンド(為替ヘッジあり予想分配金提示型)", "野村米国ブランド株投資(米ドルコース)年2回決算型", "新興国ハイクオリティ成長株式ファンド(未来の世界(新興国))",
+      "US成長株オープン(円ヘッジありコース)", "米国IPOニューステージ・ファンド<為替ヘッジあり>(年2回決算型)", "米国IPOニューステージ・ファンド<為替ヘッジなし>(年2回決算型)",
+      "野村エマージング債券投信(金コース)毎月分配型", "JPMグレーター・チャイナ・オープン", "T&Dダブルブル・ベア・シリーズ7(ナスダック100・ダブルブル7)", "スパークス・ベスト・ピック・ファンド(ヘッジ型)",
+      "野村エマージング債券投信(金コース)年2回決算型",
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
       
@@ -208,10 +214,11 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        fund.scores[0][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
+        // 試行錯誤の上、Nlog(N) に決定。　これがリターンとシャープレシオを考慮した中間点と見る。
+        fund.scores[0][i] = Math.log(Math.abs(r) + Math.E) * fund.sharps[i]
         
         if (scoresSize > 1) {
-          fund.scores[1][i] = Math.log(Math.abs(r) + Math.E) * fund.sharps[i]
+          fund.scores[1][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
 //        fund.scores[1][i] = r !== 0 ? fund.sharps[i] / Math.abs(r) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
         }
         if (scoresSize > 2) {
@@ -397,7 +404,7 @@ class MinkabuFundsScoreCalculator {
     let n = 1
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * termSize - 1).setBackground('gray')
+        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * (2 + termSize) - 1).setBackground('gray')
       }
       if (fund.isIdeco) {
         sheet.getRange(n, isIdecoCol).setBackground('yellow')
@@ -418,8 +425,9 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white', ' white']
-
+    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white', ' white', ' white']
+    const colorNum = 10
+    
     allRange.sort({column: totalScoreCol, ascending: false})
     const nameRange = sheet.getRange(1, nameCol, lastRow)
     this._setHighRankColor(nameRange)
@@ -438,13 +446,13 @@ class MinkabuFundsScoreCalculator {
       allRange.sort({column: i, ascending: false})
       
       let j = 0
-      const range = sheet.getRange(1, i, 5 * colors.length)
+      const range = sheet.getRange(1, i, colorNum * colors.length)
       const rgbs = range.getBackgrounds().map(rows => {
         return rows.map(rgb => {
           if (rgb !== white) {
             return rgb
           }
-          const result = colors[parseInt(j / 5)]
+          const result = colors[parseInt(j / colorNum)]
           j++;
 
           return result
