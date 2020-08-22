@@ -50,6 +50,12 @@ class MinkabuRankingScraper {
   }
   
   _getIdecoFunds() {
+    const ids = ['48315184']
+    ids.forEach(id => {
+      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
+      this._funds.set('/fund/' + id, new Fund(link, false))
+    })
+    
     const idecoIds = [      
       '8031114C', '64311042', '89311164', '32311984', '79313008', '9C31116A', 'AA311169', '4731198A', '89311025', '6831100B', '47311988', '29311041', '2931116A', '0131Q154', '7931211C', '93311164', 
       '65311058', '68311003', '89313135', '89311135', '25311177', '0431Q169', '64315021', '29316153', '0231202C', '20312061', '8931111A', '89312135', '0331109C', '01311021', '0331112A', '0331N029', 
@@ -91,7 +97,6 @@ class MinkabuFundsScraper {
   }
 
   _fetchDetail() {
-    const sharpNum = 12 // 12番目からのspanがシャープレシオ
     console.log('getDetailFromMinkabu:' + this._funds.size)
     
     let i = 0
@@ -103,9 +108,11 @@ class MinkabuFundsScraper {
       fund.name = this._toHankaku(Parser.data(html).from('<p class="stock_name">').to('</p>').build())
       for (let i=0; i<termSize; i++) {
         const result1 = spanList[i].replace(/%/, '')
-        const result2 = spanList[sharpNum + i].replace(/%/, '')
+        const result2 = spanList[termSize + i].replace(/%/, '')
+        const result3 = spanList[2 * termSize + i].replace(/%/, '')
         fund.returns[i] = result1 != '-' ? Number(result1) : null
-        fund.sharps[i] = result2 != '-' ? Number(result2) : null
+        fund.risks[i] = result2 != '-' ? Number(result2) : null
+        fund.sharps[i] = result3 != '-' ? Number(result3) : null
       }
       fund.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
@@ -125,7 +132,7 @@ class MinkabuFundsScraper {
     this._funds.forEach(fund => {
       const row = [fund.date, fund.link, fund.isIdeco, fund.name, '']
       fund.returns.forEach((r, i) => {
-        row.push(r, fund.sharps[i], '')
+        row.push(r, fund.risks[i], fund.sharps[i], '')
       })
       data.push(row)
     })
@@ -160,7 +167,8 @@ class MinkabuFundsScoreCalculator {
       "野村米国ブランド株投資(米ドルコース)毎月分配型", "グローバルAIファンド(為替ヘッジあり予想分配金提示型)", "野村米国ブランド株投資(米ドルコース)年2回決算型", "新興国ハイクオリティ成長株式ファンド(未来の世界(新興国))",
       "US成長株オープン(円ヘッジありコース)", "米国IPOニューステージ・ファンド<為替ヘッジあり>(年2回決算型)", "米国IPOニューステージ・ファンド<為替ヘッジなし>(年2回決算型)",
       "野村エマージング債券投信(金コース)毎月分配型", "JPMグレーター・チャイナ・オープン", "T&Dダブルブル・ベア・シリーズ7(ナスダック100・ダブルブル7)", "スパークス・ベスト・ピック・ファンド(ヘッジ型)",
-      "野村エマージング債券投信(金コース)年2回決算型",
+      "野村エマージング債券投信(金コース)年2回決算型", "野村米国ブランド株投資(アジア通貨コース)年2回決算型", "野村米国ブランド株投資(アジア通貨コース)毎月分配型", "あい・パワーファンド(iパワー)",
+      "SBI中小型成長株ファンドジェイネクスト(jnext)", "UBS中国新時代株式ファンド(年2回決算型)",
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
       
@@ -193,13 +201,17 @@ class MinkabuFundsScoreCalculator {
         }
       
         for (let i=0; i<termSize; i++) {
-          const r = value[3*i + termSize - 1]
-          const s = value[3*i + termSize]
-          if (r !== '') {
-            fund.returns[i] = Number(r)
+          const return_ = value[4*i + termSize - 1]
+          const risk = value[4*i + termSize]
+          const sharp = value[4*i + termSize + 1]
+          if (return_ !== '') {
+            fund.returns[i] = Number(return_)
           }
-          if (s !== '') {
-            fund.sharps[i] = Number(s)
+          if (risk !== '') {
+            fund.risks[i] = Number(risk)
+          }
+          if (sharp !== '') {
+            fund.sharps[i] = Number(sharp)
           }
         }
         this._funds.set(fund.link, fund)
@@ -210,19 +222,22 @@ class MinkabuFundsScoreCalculator {
   _decidePolicy() {
     this._funds.forEach(fund => {
       fund.returns.forEach((r, i) => {
-        if (r === null || fund.sharps[i] === null) {
+        if (r === null || fund.risks[i] === null || fund.sharps[i] === null) {
           return
         }
       
-        // 試行錯誤の上、Nlog(N) に決定。　これがリターンとシャープレシオを考慮した中間点と見る。
-        fund.scores[0][i] = Math.log(Math.abs(r) + Math.E) * fund.sharps[i]
+        // Score = R / K * ((|R| / (|R| + W)) * (K / (K + W)))^2
+        const w = 2 // 2 %以下は切り捨てる。
+        fund.scores[0][i] = fund.sharps[i] * Math.pow(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)), 2)
         
         if (scoresSize > 1) {
-          fund.scores[1][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
-//        fund.scores[1][i] = r !== 0 ? fund.sharps[i] / Math.abs(r) : 0 // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
+          fund.scores[1][i] = r / (fund.risks[i] + 3)
+//          fund.scores[1][i] = 1 / fund.risks[i] // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
         }
+      
+        // iDeCo 基本に従い、シャープレシオ必須
         if (scoresSize > 2) {
-          fund.scores[2][i] = fund.scores[0][i] // iDeCo版
+          fund.scores[2][i] = fund.sharps[i]
         }
       })
     })
@@ -389,7 +404,7 @@ class MinkabuFundsScoreCalculator {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
       fund.returns.forEach((r, i) => {
-        row.push('', r, fund.sharps[i])
+        row.push('', r, fund.risks[i], fund.sharps[i])
       })
       data.push(row)
     })
@@ -404,7 +419,7 @@ class MinkabuFundsScoreCalculator {
     let n = 1
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * (2 + termSize) - 1).setBackground('gray')
+        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * (1 + termSize) - 1).setBackground('gray')
       }
       if (fund.isIdeco) {
         sheet.getRange(n, isIdecoCol).setBackground('yellow')
@@ -425,8 +440,11 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'silver', ' white', ' white', ' white', ' white']
-    const colorNum = 10
+    const colors = [
+      'cyan', 'lime', 'yellow', 'orange', 'pink', 'pink', '#F7CEB9', '#F7CEB9', 'silver', 'silver',
+      ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white'
+    ]
+    const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
     const nameRange = sheet.getRange(1, nameCol, lastRow)

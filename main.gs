@@ -41,6 +41,7 @@ class Fund {
     this.name = null
     this.ignore = false
     this.returns = new Array(termSize).fill(null)
+    this.risks = new Array(termSize).fill(null)
     this.sharps = new Array(termSize).fill(null)
 
     this.scores = new Array(scoresSize)
