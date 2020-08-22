@@ -12,6 +12,7 @@ class SheetInfo {
       this.fundsSheetNames.push('Funds' + i)
     }
     this.downsideRiskSheetName = 'Downside'
+    this.infoSheetName = 'Info'
     this.logSheetName = 'Log'
     
     this.minkabuSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -38,6 +39,8 @@ class Fund {
     this.isIdeco = isIdeco
     
     this.date = null
+    this.category = null
+    this.rate = null
     this.name = null
     this.ignore = false
     this.returns = new Array(termSize).fill(null)

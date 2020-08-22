@@ -168,7 +168,17 @@ class MinkabuFundsScoreCalculator {
       "US成長株オープン(円ヘッジありコース)", "米国IPOニューステージ・ファンド<為替ヘッジあり>(年2回決算型)", "米国IPOニューステージ・ファンド<為替ヘッジなし>(年2回決算型)",
       "野村エマージング債券投信(金コース)毎月分配型", "JPMグレーター・チャイナ・オープン", "T&Dダブルブル・ベア・シリーズ7(ナスダック100・ダブルブル7)", "スパークス・ベスト・ピック・ファンド(ヘッジ型)",
       "野村エマージング債券投信(金コース)年2回決算型", "野村米国ブランド株投資(アジア通貨コース)年2回決算型", "野村米国ブランド株投資(アジア通貨コース)毎月分配型", "あい・パワーファンド(iパワー)",
-      "SBI中小型成長株ファンドジェイネクスト(jnext)", "UBS中国新時代株式ファンド(年2回決算型)",
+      "SBI中小型成長株ファンドジェイネクスト(jnext)", "UBS中国新時代株式ファンド(年2回決算型)", "ニッセイAI関連株式ファンド(年2回決算型・為替ヘッジあり)(AI革命(年2・為替ヘッジあり))",
+      "ニッセイAI関連株式ファンド(年2回決算型・為替ヘッジなし)(AI革命(年2・為替ヘッジなし))", "グローバル・ハイクオリティ成長株式ファンド(年2回決算型)(為替ヘッジなし)(未来の世界(年2回決算型))",
+      "新光日本小型株ファンド(風物語)", "GSフューチャー・テクノロジー・リーダーズBコース(為替ヘッジなし)(nextWIN)", "次世代通信関連アジア株式戦略ファンド(THE ASIA 5G)",
+      "インデックスファンド海外債券ヘッジあり(DC専用)", "ゴールドマン・サックス・世界債券オープンCコース(毎月分配型、限定為替ヘッジ)", "ゴールドマン・サックス・世界債券オープンDコース(毎月分配型、為替ヘッジなし)",
+      "JP日米バランスファンド(JP日米)", "ほくよう資産形成応援ファンド(ほくよう未来への翼)", "野村PIMCO米国投資適格債券戦略ファンド(為替ヘッジあり)毎月分配型",
+      "野村PIMCO米国投資適格債券戦略ファンド(為替ヘッジあり)年2回決算型", "三菱UFJ/ピムコトータル・リターン・ファンド<米ドルヘッジ型>(毎月決算型)", "MHAM USインカムオープン毎月決算コース(為替ヘッジなし)(ドルBOX)",
+      "ダイワ米国国債7-10年ラダー型ファンド(部分為替ヘッジあり)-USトライアングル-", "USストラテジック・インカム・アルファ毎月決算型", "ダイワ債券コア戦略ファンド(為替ヘッジあり)",
+      "USストラテジック・インカム・アルファ年1回決算型", "ダイワDBモメンタム戦略ファンド(為替ヘッジあり)", "JPM USコア債券ファンド(為替ヘッジあり、年1回決算型)",
+      "ダイワDBモメンタム戦略ファンド(為替ヘッジなし)", "野村外国債券インデックスファンド(確定拠出年金向け)", "野村未来トレンド発見ファンドCコース(為替ヘッジあり)予想分配金提示型(先見の明)",
+      "三井住友・DC外国債券インデックスファンド", "米国地方債ファンド2016-07(為替ヘッジあり)(ドリームカントリー)", "マニュライフ・米国投資適格債券戦略ファンドAコース(為替ヘッジあり・毎月)",
+      "マニュライフ・米国投資適格債券戦略ファンドCコース(為替ヘッジあり・年2回)", "先進国投資適格債券ファンド(為替ヘッジあり)(マイワルツ)",
     ]
     this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
       
@@ -226,13 +236,16 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        // Score = R / K * ((|R| / (|R| + W)) * (K / (K + W)))^2
-        const w = 2 // 2 %以下は切り捨てる。
-        fund.scores[0][i] = fund.sharps[i] * Math.pow(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)), 2)
-        
+        fund.scores[0][i] = fund.sharps[i]      // シャープレシオの掛け算 = 1.37717E+33
+      
         if (scoresSize > 1) {
-          fund.scores[1][i] = r / (fund.risks[i] + 3)
-//          fund.scores[1][i] = 1 / fund.risks[i] // 最小分散ポートフォリオ戦略。思ったより微妙でがっかり。
+          // リターンが小さすぎる債券ファンドをフィルタで消す
+          // Score = R / K * (e^((|R| / (|R| + W)) * (K / (K + W))) - 1)
+          // シャープレシオの掛け算 = 2.33215E+29
+          const w = 3  // 債券ファンドが入らないギリギリのライン。ダメだったら 3.5で。
+          const x = Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
+          const filter = Math.exp(x) - 1
+          fund.scores[1][i] = fund.sharps[i] * filter
         }
       
         // iDeCo 基本に従い、シャープレシオ必須
@@ -293,7 +306,7 @@ class MinkabuFundsScoreCalculator {
   _standardizeAndInit(n, isIdecoScores) {
     console.log('_standardizeAndInit')
 
-    // スコア基本戦略：リターンxシャープレシオ→ログ化→ルート化→下位1%を切り捨て減算→正規化→中心極限定理の端っこの部分を抽出
+    // スコア基本戦略：シャープレシオ→ログ化→ルート化→下位1%を切り捨て減算→正規化→中心極限定理の端っこの部分を抽出
     
     const [aveList, srdList, lowList] = this._analysis(this._getScoresList(n))
     this._funds.forEach(fund => {
@@ -316,7 +329,7 @@ class MinkabuFundsScoreCalculator {
       })
     })
 
-    const rank = this._calcRank(n, isIdecoScores ? idecoPurchaseNum : purchaseNum)
+    const rank = this._calcRank(n, isIdecoScores)
     
     const initList = this._getScoresList(n).map((scores, i) => {
       scores.sort((a, b) => b - a)
@@ -325,16 +338,17 @@ class MinkabuFundsScoreCalculator {
 
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        return 5 * (score === null ? initList[i] : score)
+        return 5 * (score === null && i !== 0 ? initList[i] : score)
       })
     })
   }
   
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
-  _calcRank(n, selectedNum) {
+  _calcRank(n, isIdecoScores) {
+    const selectedNum = isIdecoScores ? idecoPurchaseNum : purchaseNum
     const kMax = selectedNum     // 各期間のランキングをどこまで見るか？
 
-    let max = 0, finalRank = 0, rankMax = 200
+    let max = 0, finalRank = 0, rankMax = 300
     for (let rank=0; rank<rankMax; rank++) {
       const initList = this._getScoresList(n).map((scores, i) => {
         scores.sort((a, b) => b - a)
@@ -344,8 +358,8 @@ class MinkabuFundsScoreCalculator {
       // 3ヶ月は邪魔なので除去する！
       let scoresList = []
       this._funds.forEach(fund => {
-        if (!fund.ignore) {
-          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
+        if (isIdecoScores || (!isIdecoScores && !fund.ignore)) {
+          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))        
         }
       })
 
@@ -379,10 +393,8 @@ class MinkabuFundsScoreCalculator {
         max = sum
       }
 
-      if (n === 0) {
-        const l = [[rank, sum]]
-        this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
-      }
+      const l = [[rank, sum]]
+      this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
     }
 
     this.logSheet.getRange(rankMax + 2, n + 1).setValue(finalRank)
@@ -440,10 +452,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = [
-      'cyan', 'lime', 'yellow', 'orange', 'pink', 'pink', '#F7CEB9', '#F7CEB9', 'silver', 'silver',
-      ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white', ' white'
-    ]
+    const colors = ['cyan', 'lime', 'yellow', 'orange', 'pink', 'pink', '#F7CEB9', '#F7CEB9', 'silver', 'silver'].concat(new Array(10).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
@@ -497,7 +506,6 @@ class MinkabuFundsScoreCalculator {
     range.setBackgrounds(rgbs)
   }
 }
-
 
 function scrapingMinkabuRanking() {
   (new MinkabuRankingScraper()).scraping()
