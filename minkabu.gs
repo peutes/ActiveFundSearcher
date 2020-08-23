@@ -50,7 +50,7 @@ class MinkabuRankingScraper {
   }
   
   _getIdecoFunds() {
-    const ids = ['48315184']
+    const ids = ['48315184', '01311039']
     ids.forEach(id => {
       const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
       this._funds.set('/fund/' + id, new Fund(link, false))
@@ -151,6 +151,8 @@ class MinkabuFundsScraper {
 class MinkabuFundsScoreCalculator {
   constructor() {
     this._sheetInfo = new SheetInfo() 
+    this._infoScraper = new MinkabuInfoScraper()
+    
     this._funds = new Map()
     this._ignoreList = [
       "DIAM新興市場日本株ファンド", "FANG+インデックス・オープン", "野村世界業種別投資シリーズ(世界半導体株投資)", "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型",
@@ -178,9 +180,15 @@ class MinkabuFundsScoreCalculator {
       "USストラテジック・インカム・アルファ年1回決算型", "ダイワDBモメンタム戦略ファンド(為替ヘッジあり)", "JPM USコア債券ファンド(為替ヘッジあり、年1回決算型)",
       "ダイワDBモメンタム戦略ファンド(為替ヘッジなし)", "野村外国債券インデックスファンド(確定拠出年金向け)", "野村未来トレンド発見ファンドCコース(為替ヘッジあり)予想分配金提示型(先見の明)",
       "三井住友・DC外国債券インデックスファンド", "米国地方債ファンド2016-07(為替ヘッジあり)(ドリームカントリー)", "マニュライフ・米国投資適格債券戦略ファンドAコース(為替ヘッジあり・毎月)",
-      "マニュライフ・米国投資適格債券戦略ファンドCコース(為替ヘッジあり・年2回)", "先進国投資適格債券ファンド(為替ヘッジあり)(マイワルツ)",
+      "マニュライフ・米国投資適格債券戦略ファンドCコース(為替ヘッジあり・年2回)", "先進国投資適格債券ファンド(為替ヘッジあり)(マイワルツ)", "ゴールドマン・サックス・世界債券オープンAコース(限定為替ヘッジ)",
+      "ステート・ストリート先進国債券インデックス・オープン(為替ヘッジあり)", "ゴールドマン・サックス・世界債券オープンBコース(為替ヘッジなし)", "海外債券インデックスファンド(個人型年金向け)(ゆうちょDC海外債券インデックス)",
+      "フィデリティ世界医療機器関連株ファンド(為替ヘッジあり)", "フィデリティ世界医療機器関連株ファンド(為替ヘッジなし)", "US成長株オープン(円ヘッジなしコース)",
+      "ダイワ米国国債ファンド-ラダー10-(為替ヘッジあり)", "ダイワ米国国債ファンド-ラダー10-(為替ヘッジなし)", "海外国債ファンド(3ヵ月決算型)", "ロボット・テクノロジー関連株ファンド-ロボテック-(為替ヘッジあり)",
+      "DIAM外国債券パッシブ・ファンド", "フィデリティ世界医療機器関連株ファンド(為替ヘッジなし)", "野村外国債券インデックスファンド", "三井住友・A株メインランド・チャイナ・オープン", 
+      "マネックス・日本成長株ファンド(ザ・ファンド@マネックス)", "テトラ・エクイティ", "スパークス・ベスト・ピック・ファンドⅡ(日本・アジア)マーケットヘッジあり",
     ]
-    this._blockList = ['公社債投信.*月号', '野村・第.*回公社債投資信託']
+//    this._blockList = ['^公社債投信.*月号$', '^野村・第.*回公社債投資信託$', '^MHAM・公社債投信.*月号$', '^日興・公社債投信.*月号$', '^大和・公社債投信.*月号$]
+    this._blockList = []
       
     this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
     this.logSheet.clear()
@@ -190,6 +198,7 @@ class MinkabuFundsScoreCalculator {
     this._fetchFunds()
     this._decidePolicy()
     this._calcScores()
+    this._fetchCategory()
     this._output()
   }
 
@@ -236,17 +245,11 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        fund.scores[0][i] = fund.sharps[i]      // シャープレシオの掛け算 = 1.37717E+33
-      
-        if (scoresSize > 1) {
-          // リターンが小さすぎる債券ファンドをフィルタで消す
-          // Score = R / K * (e^((|R| / (|R| + W)) * (K / (K + W))) - 1)
-          // シャープレシオの掛け算 = 2.33215E+29
-          const w = 3  // 債券ファンドが入らないギリギリのライン。ダメだったら 3.5で。
-          const x = Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
-          const filter = Math.exp(x) - 1
-          fund.scores[1][i] = fund.sharps[i] * filter
-        }
+        // 必要最低限のフィルタは必要だった。expフィルタよりも√フィルタのほうが優秀
+        // リターンが小さすぎる債券ファンドをフィルタで消す
+        let w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去
+        fund.scores[0][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
       
         // iDeCo 基本に従い、シャープレシオ必須
         if (scoresSize > 2) {
@@ -315,8 +318,8 @@ class MinkabuFundsScoreCalculator {
           return null
         }
     
-        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算すると上方の偏りが消えてうまくいく。最下位層のデータが悪さをしてるのかも？
-        return Math.sign(res) * Math.pow(Math.abs(res), Math.pow(2, i === 0 ? -12 / 3 : (i === 1 ? -12 / 6 : -1)))
+        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算すると上方の偏りが消えてうまくいく。最下位層のデータが悪さをしてるのかも？        
+        return Math.sign(res) * Math.sqrt(Math.abs(res))
       })
     })
 
@@ -338,7 +341,7 @@ class MinkabuFundsScoreCalculator {
 
     this._funds.forEach(fund => {
       fund.scores[n] = fund.scores[n].map((score, i) => {
-        return 5 * (score === null && i !== 0 ? initList[i] : score)
+        return 5 * (score === null ? initList[i] : score)
       })
     })
   }
@@ -355,7 +358,6 @@ class MinkabuFundsScoreCalculator {
         return scores[rank]
       })
     
-      // 3ヶ月は邪魔なので除去する！
       let scoresList = []
       this._funds.forEach(fund => {
         if (isIdecoScores || (!isIdecoScores && !fund.ignore)) {
@@ -403,15 +405,28 @@ class MinkabuFundsScoreCalculator {
     return finalRank
   }
   
+  _fetchCategory() {
+    for (let n=0; n<scoresSize; n++) {
+      const isIdecoScores = n === 2
+      if (isIdecoScores) {
+        return
+      }
+      
+      [...this._funds.values()].filter(f => !f.ignore).sort((a, b) => b.totalScores[n] - a.totalScores[n]).slice(0, purchaseNum).forEach(f => this._infoScraper.scraping(f))
+    }
+    console.log('_fetchCategory')
+  }
+  
   _output() { 
     const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
+    const categoryCol = 2
     const nameCol = 3
     const isIdecoCol = 4
     const totalScoreCol = 5
 
     const data = []
     this._funds.forEach(fund => {
-      const row = [fund.link, fund.date, fund.name, fund.isIdeco]
+      const row = [fund.link, fund.category, fund.name, fund.isIdeco]
       for (let i=0; i<scoresSize; i++) {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
@@ -423,7 +438,9 @@ class MinkabuFundsScoreCalculator {
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
     const lastRow = sheet.getLastRow()
 
+    sheet.autoResizeColumn(categoryCol)
     sheet.autoResizeColumn(nameCol)
+    
     for (let i=0; i<scoresSize; i++) {
       sheet.getRange(1, totalScoreCol + i * (termSize + 2), lastRow).setFontWeight("bold")
     }
@@ -431,7 +448,7 @@ class MinkabuFundsScoreCalculator {
     let n = 1
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, nameCol, 1, totalScoreCol + scoresSize * (1 + termSize) - 1).setBackground('gray')
+        sheet.getRange(n, 1, 1, isIdecoCol + (termSize + 2) * (scoresSize - 1)).setBackground('gray')
       }
       if (fund.isIdeco) {
         sheet.getRange(n, isIdecoCol).setBackground('yellow')
@@ -444,7 +461,7 @@ class MinkabuFundsScoreCalculator {
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
-    const topRow = ['リンク', '日付', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '',  'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年']
+    const topRow = ['リンク', 'カテゴリ', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '',  'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年']
     const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
     topRowRange.setValues([topRow])
     topRowRange.setBackgrounds([topRow.map(r => 'silver')])
@@ -504,6 +521,24 @@ class MinkabuFundsScoreCalculator {
       })
     })
     range.setBackgrounds(rgbs)
+  }
+}
+
+class MinkabuInfoScraper {
+  constructor() {
+    this._sheetInfo = new SheetInfo()
+  }
+
+  scraping(fund) {
+    if (fund.category !== null) {
+      return
+    }
+    
+    const link = /(.*)\/.*/.exec(fund.link)[1]
+    const html = UrlFetchApp.fetch(link).getContentText()
+    const tables = Parser.data(html).from('<table class="md_table md_table_vertical">').to('</table>').iterate()
+    const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
+    fund.category = tds[1] // + '-' + tds[3]
   }
 }
 

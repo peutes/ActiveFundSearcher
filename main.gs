@@ -55,6 +55,10 @@ class Fund {
   }
 }
 
+function calcMinkabuFundsScore() {
+  (new MinkabuFundsScoreCalculator).calc()
+}
+
 // hook
 function onOpen() {
   const menu = [{name: 'ランキング', functionName: 'scrapingMinkabuRanking'}]
