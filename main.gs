@@ -1,4 +1,4 @@
-const termSize = 6
+const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
 const purchaseNum = 50

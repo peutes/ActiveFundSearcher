@@ -105,14 +105,15 @@ class MinkabuFundsScraper {
       const table = Parser.data(html).from('<table class="md_table">').to('</table>').build()
       const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
     
+      // 3ヶ月のデータはスキップする
       fund.name = this._toHankaku(Parser.data(html).from('<p class="stock_name">').to('</p>').build())
-      for (let i=0; i<termSize; i++) {
+      for (let i=1; i<termSize + 1; i++) {
         const result1 = spanList[i].replace(/%/, '')
-        const result2 = spanList[termSize + i].replace(/%/, '')
-        const result3 = spanList[2 * termSize + i].replace(/%/, '')
-        fund.returns[i] = result1 != '-' ? Number(result1) : null
-        fund.risks[i] = result2 != '-' ? Number(result2) : null
-        fund.sharps[i] = result3 != '-' ? Number(result3) : null
+        const result2 = spanList[(termSize + 1) + i].replace(/%/, '')
+        const result3 = spanList[2 * (termSize + 1) + i].replace(/%/, '')
+        fund.returns[i - 1] = result1 != '-' ? Number(result1) : null
+        fund.risks[i - 1] = result2 != '-' ? Number(result2) : null
+        fund.sharps[i - 1] = result3 != '-' ? Number(result3) : null
       }
       fund.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
@@ -220,9 +221,9 @@ class MinkabuFundsScoreCalculator {
         }
       
         for (let i=0; i<termSize; i++) {
-          const return_ = value[4*i + termSize - 1]
-          const risk = value[4*i + termSize]
-          const sharp = value[4*i + termSize + 1]
+          const return_ = value[4*i + termSize]
+          const risk = value[4*i + termSize + 1]
+          const sharp = value[4*i + termSize + 2]
           if (return_ !== '') {
             fund.returns[i] = Number(return_)
           }
@@ -349,9 +350,8 @@ class MinkabuFundsScoreCalculator {
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
   _calcRank(n, isIdecoScores) {
     const selectedNum = isIdecoScores ? idecoPurchaseNum : purchaseNum
-    const kMax = selectedNum     // 各期間のランキングをどこまで見るか？
 
-    let max = 0, finalRank = 0, rankMax = 300
+    let max = 0, finalRank = 0, rankMax = 1000
     for (let rank=0; rank<rankMax; rank++) {
       const initList = this._getScoresList(n).map((scores, i) => {
         scores.sort((a, b) => b - a)
@@ -361,18 +361,18 @@ class MinkabuFundsScoreCalculator {
       let scoresList = []
       this._funds.forEach(fund => {
         if (isIdecoScores || (!isIdecoScores && !fund.ignore)) {
-          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))        
+          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
         }
       })
 
       // ラストはトータルスコア
       scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
       
-      for (let i=0; i<scoresList[0].length-1; i++) {
-        let k = kMax
+      for (let i=0; i<scoresList[0].length - 1; i++) {
+        let k = selectedNum
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
           if (k > 0 && scores[i] !== initList[i]) {
-            scores[i] = 1
+            scores[i] = 1 // タイル制。一区間の強さよりも、全期間を意識する。
             k--
           } else {
             scores[i] = 0
@@ -461,7 +461,10 @@ class MinkabuFundsScoreCalculator {
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
-    const topRow = ['リンク', 'カテゴリ', '投資信託名称',  'iDeCo', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '',  'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年', '', 'トータルスコア', '3ヶ月', '6ヶ月', '1年', '3年', '5年', '10年']
+    const topRow = ['リンク', 'カテゴリ', '投資信託名称',  'iDeCo']
+    for (let i=0; i<scoresSize; i++) {
+      topRow.concat('トータルスコア', '6ヶ月', '1年', '3年', '5年', '10年', '')
+    }
     const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
     topRowRange.setValues([topRow])
     topRowRange.setBackgrounds([topRow.map(r => 'silver')])
