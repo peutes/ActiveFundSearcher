@@ -370,16 +370,11 @@ class MinkabuFundsScoreCalculator {
       })
       if (sum > max) {
         finalRank = rank
-        finalRank2 = rank2
         max = sum
       }
 
-      const l = [[rank, rank2, sum]]
+      const l = [[rank, sum]]
       this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
-    }
-      
-    if (rank % 100 === 0) {
-      console.log("rank", rank)
     }
 
     this.logSheet.getRange(rankMax + 2, 2 * n + 1).setValue(finalRank)
