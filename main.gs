@@ -1,8 +1,8 @@
 const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
-const purchaseNum = 50
-const idecoPurchaseNum = 4 // GOLDが強すぎるので、今は5ではなく4にする
+const purchaseNum = 60
+const idecoPurchaseNum = 5 // GOLDが強すぎるので、今は5ではなく4にする
 
 class SheetInfo {
   constructor() {
