@@ -261,22 +261,29 @@ class MinkabuFundsScoreCalculator {
   }
     
   _calcScores() {
-    for (let n=0; n<scoresSize; n++) {
-      const minList1 = this._getScoresList(n).map(s => Math.min(...s))
-      // バグ埋め込みやすいので消すな。score === null のワナ
-      this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : score - minList1[i])
-      })
-      
-      const ignoreNum = Number.MIN_VALUE
-      this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : Math.sqrt(Math.log(score + Math.E)))
-      })
-      
+    console.log('_calcScores')
+
+    const idecoIgnoreScore = -100
+    for (let n=0; n<scoresSize; n++) {      
       const isIdecoScores = n === 2
-      this._standardizeAndInit(n, isIdecoScores)
       
+      const [aveList, srdList] = this._analysis(this._getScoresList(n))
       this._funds.forEach(fund => {
+        fund.scores[n] = fund.scores[n].map((score, i) => {
+          const s = score === null ? null : (score - aveList[i]) / srdList[i]
+          return isIdecoScores && !fund.isIdeco ? idecoIgnoreScore : s
+        })
+      })
+
+      // 初期値を自動決定するのに各期間のスコアのランキングを使う
+      const rank = this._calcRank(n, isIdecoScores)
+      const initList = this._getScoresList(n).map((scores, i) => {
+        scores.sort((a, b) => b - a)
+        return scores[rank]
+      })
+
+      this._funds.forEach(fund => {
+        fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
         fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
       })
     }
@@ -305,46 +312,6 @@ class MinkabuFundsScoreCalculator {
     })
     console.log("aveList", aveList, "srdList", srdList, "lowList", lowList)
     return [aveList, srdList, lowList]
-  }
-
-  _standardizeAndInit(n, isIdecoScores) {
-    console.log('_standardizeAndInit')
-
-    // スコア基本戦略：シャープレシオ→ログ化→ルート化→下位1%を切り捨て減算→正規化→中心極限定理の端っこの部分を抽出
-    
-    const [aveList, srdList, lowList] = this._analysis(this._getScoresList(n))
-    this._funds.forEach(fund => {
-      fund.scores[n] = fund.scores[n].map((score, i) => {
-        if (score === null) {
-          return null
-        }
-    
-        const res = 10000000000 * (score - lowList[i]) // 歪みをボトムランクに移す。なぜか若干引き算すると上方の偏りが消えてうまくいく。最下位層のデータが悪さをしてるのかも？        
-        return Math.sign(res) * Math.sqrt(Math.abs(res))
-      })
-    })
-
-    const ignoreNum = -100
-    const [aveList2, srdList2] = this._analysis(this._getScoresList(n))
-    this._funds.forEach(fund => {
-      fund.scores[n] = fund.scores[n].map((score, i) => {
-        const s = score === null ? null : (score - aveList2[i]) / srdList2[i]
-        return isIdecoScores && !fund.isIdeco ? ignoreNum : s
-      })
-    })
-
-    const rank = this._calcRank(n, isIdecoScores)
-    
-    const initList = this._getScoresList(n).map((scores, i) => {
-      scores.sort((a, b) => b - a)
-      return scores[rank]
-    })
-
-    this._funds.forEach(fund => {
-      fund.scores[n] = fund.scores[n].map((score, i) => {
-        return 5 * (score === null ? initList[i] : score)
-      })
-    })
   }
   
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
