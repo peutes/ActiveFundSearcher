@@ -263,16 +263,13 @@ class MinkabuFundsScoreCalculator {
   _calcScores() {
     console.log('_calcScores')
 
-    const idecoIgnoreScore = -100
-    for (let n=0; n<scoresSize; n++) {      
+    for (let n=0; n<scoresSize; n++) {
       const isIdecoScores = n === 2
-      
+
+      // 各期間ごとのスコアのバランスを整えるために標準化
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => {
-          const s = score === null ? null : (score - aveList[i]) / srdList[i]
-          return isIdecoScores && !fund.isIdeco ? idecoIgnoreScore : s
-        })
+        fund.scores[n] = fund.scores[n].map((score, i) => score === null ? null : (score - aveList[i]) / srdList[i])
       })
 
       // 初期値を自動決定するのに各期間のスコアのランキングを使う
@@ -286,9 +283,19 @@ class MinkabuFundsScoreCalculator {
         fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
         fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
       })
+      
+      // 標準偏差 95%ゾーンの20以上を購入するのが望ましい
+      const totalScores = []
+      this._funds.forEach(fund => totalScores.push(fund.totalScores[n]))
+      const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
+      const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
+      this._funds.forEach(fund => {
+        const totalScore = n === 1 ? fund.totalScores[n] : (fund.totalScores[n] - ave) / srd
+        fund.totalScores[n] = isIdecoScores && !fund.isIdeco ? 0 : 10 * totalScore
+      })
     }
   }
-  
+
   _getScoresList(n) {
     const scoresList = []
     this._funds.forEach(fund => scoresList.push(fund.scores[n]))
@@ -296,22 +303,26 @@ class MinkabuFundsScoreCalculator {
   }
 
   _analysis(scoresList) {
-    const sumList = scoresList.map(scores => scores.reduce((acc, v) => acc + v, 0))
-    const aveList = sumList.map((sum, i) => sum/scoresList[i].length)
+    const aveList = scoresList.map((scores, i) => {
+      const sum = scores.reduce((acc, v) => acc + v, 0)
+      return sum / scores.length
+    })
+    
     const srdList = scoresList.map((scores, i) => {
-      return Math.sqrt(scores.reduce((acc, v) => acc + Math.pow(v - aveList[i], 2), 0) / (scores.length - 1))
+      const sum = scores.reduce((acc, v) => acc + Math.pow(v - aveList[i], 2), 0)
+      return Math.sqrt(sum / scores.length)
     })
     
 //    const maxList = scoresList.map(s => Math.max(...s))
 //    const minList = scoresList.map(s => Math.min(...s))
 
-    // 下位1%
-    const lowList = scoresList.map(scores => {
-      scores.sort((a, b) => a - b)
-      return scores[parseInt(scores.length/100)]
-    })
-    console.log("aveList", aveList, "srdList", srdList, "lowList", lowList)
-    return [aveList, srdList, lowList]
+//    // 下位1%
+//    const lowList = scoresList.map(scores => {
+//      scores.sort((a, b) => a - b)
+//      return scores[parseInt(scores.length/100)]
+//    })
+    console.log("aveList", aveList, "srdList", srdList)
+    return [aveList, srdList]
   }
   
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
