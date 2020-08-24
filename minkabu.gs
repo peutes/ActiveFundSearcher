@@ -261,6 +261,7 @@ class MinkabuFundsScoreCalculator {
     console.log('_calcScores')
 
     for (let n=0; n<scoresSize; n++) {
+      console.log("n", n)
       const isIdecoScores = n === 2
 
       // 各期間ごとのスコアのバランスを整えるために標準化
@@ -275,11 +276,9 @@ class MinkabuFundsScoreCalculator {
 
       // 初期値を自動決定するのに各期間のスコアのランキングを使う
       const rank = this._calcRank(n, isIdecoScores)
-      const initList = this._getScoresList(n).map((scores, i) => {
-        scores.sort((a, b) => b - a)
-        return scores[rank]
-      })
-
+      const initList = this._getInitList(n, rank)
+      console.log("initList", initList)
+      
       this._funds.forEach(fund => {
         fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
         fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
@@ -287,7 +286,11 @@ class MinkabuFundsScoreCalculator {
       
       // 正規分布の信頼区間 95%ゾーンのスコア20以上を購入するのが望ましい -> 購入数は50~60がいいんじゃないかという裏付け
       const totalScores = []
-      this._funds.forEach(fund => totalScores.push(fund.totalScores[n]))
+      this._funds.forEach(fund => {
+        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
+          totalScores.push(fund.totalScores[n])
+        }
+      })
       const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
       const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
       this._funds.forEach(fund => {
@@ -331,11 +334,7 @@ class MinkabuFundsScoreCalculator {
 
     let max = 0, finalRank = 0, rankMax = this._funds.size / 2
     for (let rank=0; rank<rankMax; rank++) {
-      const initList = this._getScoresList(n).map((scores, i) => {
-        scores.sort((a, b) => b - a)
-        return scores[rank]
-      })
-  
+      const initList = this._getInitList(n, rank)
       let scoresList = []
       this._funds.forEach(fund => {
         if (isIdecoScores || (!isIdecoScores && !fund.ignore)) {
@@ -381,6 +380,13 @@ class MinkabuFundsScoreCalculator {
     console.log('_calcRank:rank', finalRank)    
 
     return finalRank
+  }
+  
+  _getInitList(n, rank) {
+    return this._getScoresList(n).map((scores, i) => {
+      scores.sort((a, b) => b - a)
+      return scores[Math.min(rank, scores.length - 1)]
+    })
   }
   
   _fetchCategory() {
