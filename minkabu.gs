@@ -1,153 +1,3 @@
-class MinkabuRankingScraper {
-  constructor() {
-    this._sheetInfo = new SheetInfo()
-    this._funds = new Map()
-  }
-
-  scraping() {
-    this._fetchFunds()
-    this._getIdecoFunds()
-    
-    const data = []
-    this._funds.forEach(fund => {
-      data.push([fund.link, fund.isIdeco])
-    })
-  
-    const sheet = this._sheetInfo.getSheet(this._sheetInfo.linkSheetName)
-    sheet.clear()
-    sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-  }
-
-  _fetchFunds() {
-    const baseLink = 'https://itf.minkabu.jp'
-    const pageNum = 180 // とりあえず3600件まで対応。
-
-    let i=0;
-    for (let p=1; p<=pageNum; p++) {
-      const link = baseLink + '/ranking/return?page=' + p
-      const html = UrlFetchApp.fetch(link).getContentText()
-      const table = Parser.data(html).from('<table class="md_table ranking_table">').to("</table>").build()
-      const aList = Parser.data(table).from('<a class="fwb"').to("</a>").iterate()
-      if (aList.length === 0 || aList[0] === '<!DOCTYPE htm') {
-        console.log("ERROR:", p, table, aList)
-        return
-      }
-    
-      aList.forEach(a => {
-        const result = a.match(/href="(.*)">(.*)/)
-        const pass = result[1]
-        const link = baseLink + pass + '/risk_cont'
-        this._funds.set(pass, new Fund(link, false))
-        i++
-      })
-      
-      if (p%20 === 0) {
-        console.log(p, this._funds.size, i)
-      }
-    }
-    console.log('_fetchFunds', this._funds.size, i)
-  }
-  
-  _getIdecoFunds() {
-    const ids = ['48315184']
-    ids.forEach(id => {
-      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
-      this._funds.set('/fund/' + id, new Fund(link, false))
-    })
-    
-    const idecoIds = [      
-      '8031114C', '64311042', '89311164', '32311984', '79313008', '9C31116A', 'AA311169', '4731198A', '89311025', '6831100B', '47311988', '29311041', '2931116A', '0131Q154', '7931211C', '93311164', 
-      '65311058', '68311003', '89313135', '89311135', '25311177', '0431Q169', '64315021', '29316153', '0231202C', '20312061', '8931111A', '89312135', '0331109C', '01311021', '0331112A', '0331N029', 
-      'AN311166', '89314135', '0231402C', '0131102B', '79312024', '0331110A', '0131F122', '2931201B', '0231502C', '0231602C', '0231702C', '0231802C', '0431X169', '64311081', '03312163', '03313163', 
-      '03314163', '03315163', '03316163', '89313121', '89312121', '89314121', '89315121', '4731304C', '89315135', '29311078', '79314169', '01315087', '03311112', '04314086', 
-    ]
-    
-    idecoIds.forEach(id => {
-      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
-      this._funds.set('/fund/' + id, new Fund(link, true))
-    })
-    console.log('_getIdecoFunds', this._funds.size)
-  }
-}
-
-class MinkabuFundsScraper {
-  constructor(fundsSheetNum) {
-    this._fundsSheetNum = fundsSheetNum
-    this._sheetInfo = new SheetInfo()
-    this._fundSheetName = this._sheetInfo.fundsSheetNames[fundsSheetNum]
-    this._funds = new Map()
-  }
-
-  scraping() {
-    this._fetchLinks()
-    this._fetchDetail()
-    this._output()
-  }
-
-  _fetchLinks() {
-    const sheet = this._sheetInfo.getSheet(this._sheetInfo.linkSheetName)
-    const values = sheet.getDataRange().getValues()
-    const n = 300
-    const end = Math.min(values.length, n * (this._fundsSheetNum + 1))
-    for (let i=n * this._fundsSheetNum; i<end; i++) {
-      this._funds.set(values[i][0], new Fund(values[i][0], values[i][1]))
-    }
-    console.log('_fetchLinks')
-  }
-
-  _fetchDetail() {
-    console.log('getDetailFromMinkabu:' + this._funds.size)
-    
-    let i = 0
-    this._funds.forEach(fund => {
-      const html = UrlFetchApp.fetch(fund.link).getContentText()
-      const table = Parser.data(html).from('<table class="md_table">').to('</table>').build()
-      const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
-    
-      // 3ヶ月のデータはスキップする
-      fund.name = this._toHankaku(Parser.data(html).from('<p class="stock_name">').to('</p>').build())
-      for (let i=1; i<termSize + 1; i++) {
-        const result1 = spanList[i].replace(/%/, '')
-        const result2 = spanList[(termSize + 1) + i].replace(/%/, '')
-        const result3 = spanList[2 * (termSize + 1) + i].replace(/%/, '')
-        fund.returns[i - 1] = result1 != '-' ? Number(result1) : null
-        fund.risks[i - 1] = result2 != '-' ? Number(result2) : null
-        fund.sharps[i - 1] = result3 != '-' ? Number(result3) : null
-      }
-      fund.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
-    
-      i++
-      if (i%50 === 0) {
-        console.log(i)
-      }
-    })
-    console.log('_fetchDetail')
-  }
-
-  _output() {
-    const sheet = this._sheetInfo.getSheet(this._fundSheetName)
-    sheet.clear()
-
-    const data = []
-    this._funds.forEach(fund => {
-      const row = [fund.date, fund.link, fund.isIdeco, fund.name, '']
-      fund.returns.forEach((r, i) => {
-        row.push(r, fund.risks[i], fund.sharps[i], '')
-      })
-      data.push(row)
-    })
-    sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-    sheet.autoResizeColumns(2, 4)
-    console.log('_output')
-  }
-      
-  _toHankaku(str) {
-    return str.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, function(s) {
-        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-    }).replace(/”/g, "\"").replace(/’/g, "'").replace(/‘/g, "`").replace(/￥/g, "\\").replace(/　/g, " ").replace(/〜/g, "~")
-  }
-}
-
 class MinkabuFundsScoreCalculator {
   constructor() {
     this._sheetInfo = new SheetInfo() 
@@ -249,9 +99,8 @@ class MinkabuFundsScoreCalculator {
         // 必要最低限のフィルタは必要だった。expフィルタよりも√フィルタのほうが優秀
         // リターンが小さすぎる債券ファンドをフィルタで消す
         const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信が0以下になるようにする。
-        const w2 = 0.2  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信が0以下になるようにする。
         fund.scores[0][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w2) * (fund.risks[i] + w2)))
+        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
         fund.scores[2][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
       })
     })
@@ -262,7 +111,6 @@ class MinkabuFundsScoreCalculator {
 
     for (let n=0; n<scoresSize; n++) {
       console.log("n", n)
-      const isIdecoScores = n === 2
 
       // 各期間ごとのスコアのバランスを整えるために標準化
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
@@ -271,36 +119,41 @@ class MinkabuFundsScoreCalculator {
       })
 
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map(s => isIdecoScores && !fund.isIdeco ? null : s)
+        fund.scores[n] = fund.scores[n].map(s => this._isTargetFund(n, fund) ? s : null)
       })
 
       // 初期値を自動決定するのに各期間のスコアのランキングを使う
-      const rank = this._calcRank(n, isIdecoScores)
+      const rank = this._calcRank(n)
       const initList = this._getInitList(n, rank)
       console.log("initList", initList)
       
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
-        fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
+        if (this._isTargetFund(n, fund)) {
+          fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
+          fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
+        }
       })
       
       // 正規分布の信頼区間 95%ゾーンのスコア20以上を購入するのが望ましい -> 購入数は50~60がいいんじゃないかという裏付け
       const totalScores = []
       this._funds.forEach(fund => {
-        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
+        if (this._isTargetFund(n, fund)) {
           totalScores.push(fund.totalScores[n])
         }
       })
       const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
       const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
       this._funds.forEach(fund => {
-        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
+        if (this._isTargetFund(n, fund)) {
           fund.totalScores[n] = 10 * (fund.totalScores[n] - ave) / srd
-        } else {
-          fund.totalScores[n] = 0
         }
       })
     }
+  }
+  
+  _isTargetFund(n, fund) {
+    const isIdecoScores = this._isIdecoScores(n)
+    return !isIdecoScores || (isIdecoScores && fund.isIdeco)    // iDeCoは ignore無視
   }
 
   _getScoresList(n) {
@@ -333,15 +186,15 @@ class MinkabuFundsScoreCalculator {
   }
   
   // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
-  _calcRank(n, isIdecoScores) {
-    const selectedNum = isIdecoScores ? idecoPurchaseNum : purchaseNum
+  _calcRank(n) {
+    const selectedNum = this._isIdecoScores(n) ? idecoPurchaseNum : purchaseNum
 
     let max = 0, finalRank = 0, rankMax = this._funds.size / 2
     for (let rank=0; rank<rankMax; rank++) {
       const initList = this._getInitList(n, rank)
       let scoresList = []
       this._funds.forEach(fund => {
-        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
+        if (this._isTargetFund(n, fund)) {
           scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
         }
       })
@@ -362,8 +215,6 @@ class MinkabuFundsScoreCalculator {
         })
       }
       scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, selectedNum)
-
-//      this.logSheet.getRange(1, 1, scoresList.length, scoresList[0].length).setValues(scoresList)
 
       let sum = 0
       const indicator = scoresList.map(scores => {
@@ -395,14 +246,17 @@ class MinkabuFundsScoreCalculator {
   
   _fetchCategory() {
     for (let n=0; n<scoresSize; n++) {
-      const isIdecoScores = n === 2
-      if (isIdecoScores) {
+      if (this._isIdecoScores(n)) {
         return
       }
       
       [...this._funds.values()].filter(f => !f.ignore).sort((a, b) => b.totalScores[n] - a.totalScores[n]).slice(0, purchaseNum).forEach(f => this._infoScraper.scraping(f))
     }
     console.log('_fetchCategory')
+  }
+
+  _isIdecoScores(n) {
+    return n === 2
   }
   
   _output() { 
@@ -531,58 +385,6 @@ class MinkabuInfoScraper {
     const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
     fund.category = tds[1] // + '-' + tds[3]
   }
-}
-
-function scrapingMinkabuRanking() {
-  (new MinkabuRankingScraper()).scraping()
-}
- 
-function scrapingMinkabuFunds0() {
-  (new MinkabuFundsScraper(0)).scraping()
-}
-
-function scrapingMinkabuFunds1() {
-  (new MinkabuFundsScraper(1)).scraping()
-}
-
-function scrapingMinkabuFunds2() {
-  (new MinkabuFundsScraper(2)).scraping()
-}
-
-function scrapingMinkabuFunds3() {
-  (new MinkabuFundsScraper(3)).scraping()
-}
-
-function scrapingMinkabuFunds4() {
-  (new MinkabuFundsScraper(4)).scraping()
-}
-
-function scrapingMinkabuFunds5() {
-  (new MinkabuFundsScraper(5)).scraping()
-}
-
-function scrapingMinkabuFunds6() {
-  (new MinkabuFundsScraper(6)).scraping()
-}
-
-function scrapingMinkabuFunds7() {
-  (new MinkabuFundsScraper(7)).scraping()
-}
-
-function scrapingMinkabuFunds8() {
-  (new MinkabuFundsScraper(8)).scraping()
-}
-
-function scrapingMinkabuFunds9() {
-  (new MinkabuFundsScraper(9)).scraping()
-}
-
-function scrapingMinkabuFunds10() {
-  (new MinkabuFundsScraper(10)).scraping()
-}
-
-function scrapingMinkabuFunds11() {
-  (new MinkabuFundsScraper(11)).scraping()
 }
 
 function calcMinkabuFundsScore() {
