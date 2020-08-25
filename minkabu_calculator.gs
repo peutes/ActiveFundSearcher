@@ -151,8 +151,9 @@ class MinkabuFundsScoreCalculator {
       console.log("initList", initList)
       
       this._funds.forEach(fund => {
+        // ignore は消さないで、もしも購入可能になったときのスコア表示は残すため、false
         if (this._isTargetFund(n, fund, false)) {
-          fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
+          fund.scores[n] = fund.scores[n].map((s, i) => 4 * (s || initList[i]))
           fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
         } else {
           fund.scores[n] = fund.scores[n].map(s => null)
@@ -160,7 +161,7 @@ class MinkabuFundsScoreCalculator {
         }
       })
       
-      // 正規分布の信頼区間 95%ゾーンのスコア20以上を購入するのが望ましい -> 購入数は50~60がいいんじゃないかという裏付け
+      // 正規分布の信頼区間 95%ゾーンのスコア20以上を購入するのが望ましい -> 購入数は60~70がいいんじゃないかという裏付け
       const totalScores = []
       this._funds.forEach(fund => {
         if (this._isTargetFund(n, fund, false)) {
@@ -221,13 +222,13 @@ class MinkabuFundsScoreCalculator {
       const initList = this._getInitList(n, rank)
       let scoresList = []
       this._funds.forEach(fund => {
-        // 全てのデータを使わず、ターゲットになってるスコアしか対象にしない。
-        // ignoreはデータを捨てるわけではない。初期値の変動だけ影響する。
+        // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
+        // ignoreは初期値の変動に影響する。
         if (this._isTargetFund(n, fund, true)) {
-          scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
+          scoresList.push(fund.scores[n].map((s, i) => s || initList[i]))
         }
       })
-
+      
       // ラストはトータルスコア
       scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
       
@@ -235,7 +236,7 @@ class MinkabuFundsScoreCalculator {
         let k = selectedNum
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
           if (k > 0 && scores[i] !== initList[i]) {
-            scores[i] = k // 1 だと、たまに偶然でぶっこわれるケースがあった。変動が激しい。
+            scores[i] = k // 1 だと、たまに偶然でぶっこわれるケースがあった。変動が激しいのでkに変更。
             k--
           } else {
             scores[i] = 0
@@ -244,7 +245,9 @@ class MinkabuFundsScoreCalculator {
           return scores
         })
       }
-      scoresList = scoresList.sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1]).slice(0, selectedNum)
+      scoresList = scoresList
+        .sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1])
+        .slice(0, selectedNum)
 
       let sum = 0
       const indicator = scoresList.map(scores => {
