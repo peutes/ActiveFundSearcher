@@ -294,7 +294,11 @@ class MinkabuFundsScoreCalculator {
       const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
       const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
       this._funds.forEach(fund => {
-        fund.totalScores[n] = 10 * (fund.totalScores[n] - ave) / srd
+        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
+          fund.totalScores[n] = 10 * (fund.totalScores[n] - ave) / srd
+        } else {
+          fund.totalScores[n] = 0
+        }
       })
     }
   }
@@ -337,7 +341,7 @@ class MinkabuFundsScoreCalculator {
       const initList = this._getInitList(n, rank)
       let scoresList = []
       this._funds.forEach(fund => {
-        if (isIdecoScores || (!isIdecoScores && !fund.ignore)) {
+        if (!isIdecoScores || (isIdecoScores && fund.isIdeco)) {
           scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
         }
       })
