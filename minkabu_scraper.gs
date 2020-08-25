@@ -1,3 +1,26 @@
+class Fund {
+  constructor(link, isIdeco) {
+    this.link = link
+    this.isIdeco = isIdeco
+    
+    this.date = null
+    this.category = null
+    this.isRakuten = null
+    this.rate = null
+    this.name = null
+    this.ignore = false
+    this.returns = new Array(termSize).fill(null)
+    this.risks = new Array(termSize).fill(null)
+    this.sharps = new Array(termSize).fill(null)
+
+    this.scores = new Array(scoresSize)
+    for (let i=0; i<scoresSize; i++) {
+      this.scores[i] = new Array(termSize).fill(null)
+    }
+    this.totalScores = new Array(scoresSize).fill(0)
+  }
+}
+
 class MinkabuRankingScraper {
   constructor() {
     this._sheetInfo = new SheetInfo()
@@ -145,5 +168,28 @@ class MinkabuFundsScraper {
     return str.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, function(s) {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
     }).replace(/”/g, "\"").replace(/’/g, "'").replace(/‘/g, "`").replace(/￥/g, "\\").replace(/　/g, " ").replace(/〜/g, "~")
+  }
+}
+
+class MinkabuInfoScraper {
+  constructor() {
+    this._sheetInfo = new SheetInfo()
+  }
+
+  scraping(fund) {
+    if (fund.category !== null) {
+      return
+    }
+    
+    const link = /(.*)\/.*/.exec(fund.link)[1]
+    const html = UrlFetchApp.fetch(link).getContentText()
+    const tables = Parser.data(html).from('<table class="md_table md_table_vertical">').to('</table>').iterate()
+    const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
+    fund.category = tds[1] // + '-' + tds[3
+
+//    const link2 = link + '/sales_company'
+//    const html2 = UrlFetchApp.fetch(link2).getContentText()
+//    const table2 = Parser.data(html2).from('<table class="md_table">').to('</table>').build()
+//    fund.isRakuten = table2.indexOf("楽天証券") !== -1
   }
 }

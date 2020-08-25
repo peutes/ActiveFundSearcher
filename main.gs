@@ -1,7 +1,7 @@
 const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
-const purchaseNum = 70
+const purchaseNum = 65
 const idecoPurchaseNum = 2
 
 class SheetInfo {
@@ -31,28 +31,6 @@ class SheetInfo {
     return this.minkabuSpreadSheet.insertSheet(name, 0)
   }
 
-}
-
-class Fund {
-  constructor(link, isIdeco) {
-    this.link = link
-    this.isIdeco = isIdeco
-    
-    this.date = null
-    this.category = null
-    this.rate = null
-    this.name = null
-    this.ignore = false
-    this.returns = new Array(termSize).fill(null)
-    this.risks = new Array(termSize).fill(null)
-    this.sharps = new Array(termSize).fill(null)
-
-    this.scores = new Array(scoresSize)
-    for (let i=0; i<scoresSize; i++) {
-      this.scores[i] = new Array(termSize).fill(null)
-    }
-    this.totalScores = new Array(scoresSize).fill(0)
-  }
 }
 
 function calcMinkabuFundsScore() {

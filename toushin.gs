@@ -14,7 +14,6 @@ class FundsDownsideRiskCalculator {
     // 最終的にrisk1を採用するか、risk2を採用するかは要検討
     risks.forEach((pp, i) => this.output(1, [risks]))
     //allPrices.forEach((pp, i) => this.output((5 * i + 1), pp))
-
   }
   
   _calcAllPrices(link) {

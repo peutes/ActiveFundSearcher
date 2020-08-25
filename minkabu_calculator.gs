@@ -36,6 +36,24 @@ class MinkabuFundsScoreCalculator {
       "ダイワ米国国債ファンド-ラダー10-(為替ヘッジあり)", "ダイワ米国国債ファンド-ラダー10-(為替ヘッジなし)", "海外国債ファンド(3ヵ月決算型)", "ロボット・テクノロジー関連株ファンド-ロボテック-(為替ヘッジあり)",
       "DIAM外国債券パッシブ・ファンド", "フィデリティ世界医療機器関連株ファンド(為替ヘッジなし)", "野村外国債券インデックスファンド", "三井住友・A株メインランド・チャイナ・オープン", 
       "マネックス・日本成長株ファンド(ザ・ファンド@マネックス)", "テトラ・エクイティ", "スパークス・ベスト・ピック・ファンドⅡ(日本・アジア)マーケットヘッジあり",
+      "コーポレート・ボンド・インカム(為替ヘッジ型)(泰平航路)", "パインブリッジ世界国債インカムオープン「毎月タイプ」(スーパーシート)", "ニッセイ欧州株式厳選ファンドリスクコントロールコース",
+      "三井住友・中国A株・香港株オープン", "ワールド・ゲノムテクノロジー・オープンBコース", "ワールド・ゲノムテクノロジー・オープンAコース", "リビング・アース戦略ファンド(年2回決算コース)",
+      "ブラックロック・ゴールド・メタル・オープンAコース", "ブラックロック・ゴールド・メタル・オープンBコース", "ダイワ投信倶楽部外国債券インデックス", "グローバル・ソブリン・オープン（毎月決算型）",
+      "リビング・アース戦略ファンド(年2回決算コース)", "グローバル・セキュリティ株式ファンド(3ヵ月決算型)", "世界分散投資戦略ファンド(グローバル・ビュー)", "野村グローバルAI関連株式ファンドAコース",
+      "野村グローバルAI関連株式ファンドBコース", "DCニッセイワールドセレクトファンド(安定型)", "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジなし)", "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジあり)",
+      "シンプレクス・ジャパン・バリューアップ・ファンド", "ファイン・ブレンド(毎月分配型)", "ワールド・ウォーター・ファンドAコース", "ワールド・ウォーター・ファンドBコース",
+      "三井住友・NYダウ・ジョーンズ指数オープン(為替ヘッジあり)", "三井住友・NYダウ・ジョーンズ・インデックスファンド(為替ヘッジ型)(NYドリーム)", "三井住友・NYダウ・ジョーンズ指数オープン(為替ヘッジなし)",
+      "三井住友・NYダウ・ジョーンズ・インデックスファンド(為替ノーヘッジ型)(NYドリーム)", "野村アクア投資Aコース", "野村アクア投資Bコース", "ひふみ投信", "三菱UFJ国内債券インデックスファンド(確定拠出年金)",
+      "シンプレクス・ジャパン・バリューアップ・ファンド", "スマート・ファイブ(1年決算型)", "スマート・ファイブ(毎月決算型)", "大和住銀日本小型株ファンド", "DCインデックスバランス(株式20)",
+      "DCインデックスバランス(株式40)", "DCインデックスバランス(株式60)", "DCインデックスバランス(株式80)", "シンプレクス・ジャパン・バリューアップ・ファンド",
+      "年金積立アセット・ナビゲーション・ファンド(株式20)(DCAナビ20)", "年金積立アセット・ナビゲーション・ファンド(株式40)(DCAナビ40)", "年金積立アセット・ナビゲーション・ファンド(株式60)(DCAナビ60)",
+      "年金積立アセット・ナビゲーション・ファンド(株式80)(DCAナビ80)", "野村世界業種別投資シリーズ(世界ヘルスケア株投資)", "野村世界業種別投資シリーズ(世界金融株投資)",
+      "野村世界6資産分散投信(安定コース)", "野村世界6資産分散投信(分配コース)", "野村世界6資産分散投信(成長コース)", "野村世界6資産分散投信(配分変更コース)", "いちよし公開ベンチャー・ファンド",
+      "マイストーリー・株25", "マイストーリー・株50", "マイストーリー・株75", "マイストーリー・株100", "ハッピーライフファンド・株25", "ハッピーライフファンド・株50", "ハッピーライフファンド・株100",
+      "かいたくファンド", "三菱UFJライフプラン25(ゆとりずむ25)", "三菱UFJライフプラン50(ゆとりずむ50)", "三菱UFJライフプラン75(ゆとりずむ75)", "MHAMライフナビゲーションインカム(ライフナビインカム)",
+      "米国優先証券オープン", "バランスセレクト30", "バランスセレクト50", "バランスセレクト70", "ダイワライフスタイル25", "ダイワライフスタイル50", "ダイワライフスタイル75",
+      "ワールド・ウォーター・ファンドAコース", "ワールド・ウォーター・ファンドBコース", "結い2101", 
+      
     ]
 //    this._blockList = ['^公社債投信.*月号$', '^野村・第.*回公社債投資信託$', '^MHAM・公社債投信.*月号$', '^日興・公社債投信.*月号$', '^大和・公社債投信.*月号$]
     this._blockList = []
@@ -96,12 +114,11 @@ class MinkabuFundsScoreCalculator {
         }
       
         // 基本方針：平均分散モデルのシャープレシオ最大化における
-        // 必要最低限のフィルタは必要だった。expフィルタよりも√フィルタのほうが優秀
-        // リターンが小さすぎる債券ファンドをフィルタで消す
-        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信が0以下になるようにする。
-        fund.scores[0][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[2][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除
+        const f = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+        fund.scores[0][i] = f
+        fund.scores[1][i] = f
+        fund.scores[2][i] = f
       })
     })
   }
@@ -115,11 +132,15 @@ class MinkabuFundsScoreCalculator {
       // 各期間ごとのスコアのバランスを整えるために標準化
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((s, i) => s === null ? null : (s - aveList[i]) / srdList[i])
-      })
-
-      this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map(s => this._isTargetFund(n, fund) ? s : null)
+        fund.scores[n] = fund.scores[n].map((score, i) => {
+          if (score === null) {
+            return null
+          }
+          if (n === 1 && i === 0) {
+            return null
+          }
+          return (score - aveList[i]) / srdList[i]
+        })
       })
 
       // 初期値を自動決定するのに各期間のスコアのランキングを使う
@@ -128,32 +149,35 @@ class MinkabuFundsScoreCalculator {
       console.log("initList", initList)
       
       this._funds.forEach(fund => {
-        if (this._isTargetFund(n, fund)) {
+        if (this._isTargetFund(n, fund, false)) {
           fund.scores[n] = fund.scores[n].map((s, i) => s || initList[i])
           fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
+        } else {
+          fund.scores[n] = fund.scores[n].map(s => null)
+          fund.totalScores[n] = null
         }
       })
       
       // 正規分布の信頼区間 95%ゾーンのスコア20以上を購入するのが望ましい -> 購入数は50~60がいいんじゃないかという裏付け
       const totalScores = []
       this._funds.forEach(fund => {
-        if (this._isTargetFund(n, fund)) {
+        if (this._isTargetFund(n, fund, false)) {
           totalScores.push(fund.totalScores[n])
         }
       })
       const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
       const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
       this._funds.forEach(fund => {
-        if (this._isTargetFund(n, fund)) {
+        if (this._isTargetFund(n, fund, false)) {
           fund.totalScores[n] = 10 * (fund.totalScores[n] - ave) / srd
         }
       })
     }
   }
   
-  _isTargetFund(n, fund) {
+  _isTargetFund(n, fund, useIgnore) {
     const isIdecoScores = this._isIdecoScores(n)
-    return !isIdecoScores || (isIdecoScores && fund.isIdeco)    // iDeCoは ignore無視
+    return (!isIdecoScores && !(useIgnore && fund.ignore)) || (isIdecoScores && fund.isIdeco)    // iDeCoは ignore無視
   }
 
   _getScoresList(n) {
@@ -189,12 +213,15 @@ class MinkabuFundsScoreCalculator {
   _calcRank(n) {
     const selectedNum = this._isIdecoScores(n) ? idecoPurchaseNum : purchaseNum
 
-    let max = 0, finalRank = 0, rankMax = this._funds.size / 2
+    const rankMax = this._funds.size / 2
+    let max = 0, finalRank = 0
     for (let rank=0; rank<rankMax; rank++) {
       const initList = this._getInitList(n, rank)
       let scoresList = []
       this._funds.forEach(fund => {
-        if (this._isTargetFund(n, fund)) {
+        // 全てのデータを使わず、ターゲットになってるスコアしか対象にしない。
+        // ignoreはデータを捨てるわけではない。初期値の変動だけ影響する。
+        if (this._isTargetFund(n, fund, true)) {
           scoresList.push(fund.scores[n].map((score, i) => score === null ? initList[i] : score))
         }
       })
@@ -211,6 +238,7 @@ class MinkabuFundsScoreCalculator {
           } else {
             scores[i] = 0
           }
+
           return scores
         })
       }
@@ -239,6 +267,9 @@ class MinkabuFundsScoreCalculator {
   
   _getInitList(n, rank) {
     return this._getScoresList(n).map((scores, i) => {
+      if (scores.length === 0) {
+        return 0
+      }
       scores.sort((a, b) => b - a)
       return scores[Math.min(rank, scores.length - 1)]
     })
@@ -250,7 +281,11 @@ class MinkabuFundsScoreCalculator {
         return
       }
       
-      [...this._funds.values()].filter(f => !f.ignore).sort((a, b) => b.totalScores[n] - a.totalScores[n]).slice(0, purchaseNum).forEach(f => this._infoScraper.scraping(f))
+      [...this._funds.values()]
+        .filter(f => !f.ignore)
+        .sort((a, b) => b.totalScores[n] - a.totalScores[n])
+        .slice(0, purchaseNum)
+        .forEach(f => this._infoScraper.scraping(f))
     }
     console.log('_fetchCategory')
   }
@@ -261,14 +296,14 @@ class MinkabuFundsScoreCalculator {
   
   _output() { 
     const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
-    const categoryCol = 2
-    const nameCol = 3
-    const isIdecoCol = 4
-    const totalScoreCol = 5
+    const categoryCol = 3
+    const nameCol = 4
+    const isIdecoCol = 5
+    const totalScoreCol = 6
 
     const data = []
     this._funds.forEach(fund => {
-      const row = [fund.link, fund.category, fund.name, fund.isIdeco]
+      const row = [fund.link, fund.isRakuten, fund.category, fund.name, fund.isIdeco]
       for (let i=0; i<scoresSize; i++) {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
@@ -303,7 +338,7 @@ class MinkabuFundsScoreCalculator {
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
-    const topRow = ['リンク', 'カテゴリ', '投資信託名称',  'iDeCo']
+    const topRow = ['リンク', '楽天', 'カテゴリ', '投資信託名称',  'iDeCo']
     for (let i=0; i<scoresSize; i++) {
       topRow.concat('トータルスコア', '6ヶ月', '1年', '3年', '5年', '10年', '')
     }
@@ -314,7 +349,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#cfe2f3', '#cfe2f3', 'pink', 'pink', '#F7CEB9', '#F7CEB9', 'silver', 'silver'].concat(new Array(10).fill('white'))
+    const colors = ['cyan', 'lime', 'yellow', 'orange', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(10).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
@@ -366,24 +401,6 @@ class MinkabuFundsScoreCalculator {
       })
     })
     range.setBackgrounds(rgbs)
-  }
-}
-
-class MinkabuInfoScraper {
-  constructor() {
-    this._sheetInfo = new SheetInfo()
-  }
-
-  scraping(fund) {
-    if (fund.category !== null) {
-      return
-    }
-    
-    const link = /(.*)\/.*/.exec(fund.link)[1]
-    const html = UrlFetchApp.fetch(link).getContentText()
-    const tables = Parser.data(html).from('<table class="md_table md_table_vertical">').to('</table>').iterate()
-    const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
-    fund.category = tds[1] // + '-' + tds[3]
   }
 }
 
