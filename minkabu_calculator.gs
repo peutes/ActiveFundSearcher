@@ -153,7 +153,7 @@ class MinkabuFundsScoreCalculator {
       this._funds.forEach(fund => {
         // ignore は消さないで、もしも購入可能になったときのスコア表示は残すため、false
         if (this._isTargetFund(n, fund, false)) {
-          fund.scores[n] = fund.scores[n].map((s, i) => 4 * (s || initList[i]))
+          fund.scores[n] = fund.scores[n].map((s, i) => 10 * (s || initList[i]))
           fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
         } else {
           fund.scores[n] = fund.scores[n].map(s => null)
@@ -235,7 +235,7 @@ class MinkabuFundsScoreCalculator {
       for (let i=0; i<scoresList[0].length - 1; i++) {
         let k = selectedNum
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
-          if (k > 0 && scores[i] !== initList[i]) {
+          if (k > 0 && scores[i] !== initList[i] && !(n === 1 && i === 0)) {
             scores[i] = k // 1 だと、たまに偶然でぶっこわれるケースがあった。変動が激しいのでkに変更。
             k--
           } else {
