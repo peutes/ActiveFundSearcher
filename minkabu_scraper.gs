@@ -163,7 +163,7 @@ class MinkabuFundsScraper {
     sheet.autoResizeColumns(2, 4)
     console.log('_output')
   }
-      
+  
   _toHankaku(str) {
     return str.replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, function(s) {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);

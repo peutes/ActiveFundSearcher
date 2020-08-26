@@ -54,7 +54,14 @@ class MinkabuFundsScoreCalculator {
       "米国優先証券オープン", "バランスセレクト30", "バランスセレクト50", "バランスセレクト70", "ダイワライフスタイル25", "ダイワライフスタイル50", "ダイワライフスタイル75",
       "ワールド・ウォーター・ファンドAコース", "ワールド・ウォーター・ファンドBコース", "結い2101", "ピムコ世界債券戦略ファンド(毎月決算型)Aコース(為替ヘッジあり)", 
       "ピムコ世界債券戦略ファンド(毎月決算型)Bコース(為替ヘッジなし)", "米国国債ファンド為替ヘッジなし(毎月決算型)", "ロボット・テクノロジー関連株ファンド-ロボテック-",
-      "ダイワ債券コア戦略ファンド(為替ヘッジなし)", "ダイワ・セレクト日本",
+      "ダイワ債券コア戦略ファンド(為替ヘッジなし)", "ダイワ・セレクト日本", "アムンディ・中国株ファンド(悟空)", "大和住銀中国株式ファンド", "BNYメロン・米国株式ダイナミック戦略ファンド(亜米利加)",
+      "先進国ハイクオリティ成長株式ファンド(為替ヘッジあり)(未来の世界(先進国))", "先進国ハイクオリティ成長株式ファンド(為替ヘッジなし)(未来の世界(先進国))", "厳選ジャパン", "日興AM中国A株ファンド2(黄河2)",
+      "ニッセイSDGsグローバルセレクトファンド(年2回決算型・為替ヘッジあり)", "ティー・ロウ・プライス世界厳選成長株式ファンドAコース(資産成長型・為替ヘッジあり)",
+      "ティー・ロウ・プライス世界厳選成長株式ファンドCコース(分配重視型・為替ヘッジあり)", "ティー・ロウ・プライス世界厳選成長株式ファンドDコース(分配重視型・為替ヘッジなし)",
+      "ティー・ロウ・プライス世界厳選成長株式ファンドBコース(資産成長型・為替ヘッジなし)", "UBS中国A株ファンド(年4回決算型)(桃源郷・年4)", "米国製造業株式ファンド(USルネサンス)",
+      "米国厳選成長株集中投資ファンドBコース(為替ヘッジなし)(新世紀アメリカ~Yes,We Can!~)", "ニッセイ次世代医療ファンド", "ダイワ/ミレーアセット・グローバル・グレートコンシューマー株式ファンド(為替ヘッジあり)",
+      "野村グローバルSRI100(野村世界社会的責任投資)", "ヘッジ付先進国株式インデックスオープン", "インデックスファンド海外株式ヘッジあり(DC専用)", "アジアオープン", "ダイワ新興企業株ファンド",
+      "きらめきジャパン(きらめき)", "アムンディ・りそなグローバル・ブランド・ファンド(ティアラ)", "J-REITオープン(年4回決算型)", "JPM日本中小型株ファンド", "6資産バランスファンド(成長型)(ダブルウイング)",
       
     ]
 //    this._blockList = ['^公社債投信.*月号$', '^野村・第.*回公社債投資信託$', '^MHAM・公社債投信.*月号$', '^日興・公社債投信.*月号$', '^大和・公社債投信.*月号$]
@@ -115,12 +122,13 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        // 基本方針：平均分散モデルのシャープレシオ最大化における
+        // 基本方針：シャープレシオが高くなるように頑張る。ただし、ちょっとだけリターンを意識する
+        // たった1/4でも、合計リターンがシャープレシオオンリーの時の1.5倍になった。1/8でも、☆2レベルの残念な債券ファンドが検出されたため、1/5で。）
         const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除
-        const f = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[0][i] = f
-        fund.scores[1][i] = f
-        fund.scores[2][i] = f
+        fund.scores[0][i] = Math.pow(Math.abs(r), 1 / 5) * fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+//        fund.scores[1][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]      // r^1.5/k
+        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+        fund.scores[2][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
       })
     })
   }
@@ -138,9 +146,9 @@ class MinkabuFundsScoreCalculator {
           if (score === null) {
             return null
           }
-          if (n === 1 && i === 0) {
-            return null
-          }
+//          if (n === 1 && i === 0) {
+//            return null
+//          }
           return (score - aveList[i]) / srdList[i]
         })
       })
@@ -232,13 +240,11 @@ class MinkabuFundsScoreCalculator {
       // ラストはトータルスコア
       scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
       
+      // 初期値を設定したときに、初期値「以外」のスコアが最大になるように設定する。
       for (let i=0; i<scoresList[0].length - 1; i++) {
-        let k = selectedNum
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
-          if (k > 0 && scores[i] !== initList[i] && !(n === 1 && i === 0)) {
-            scores[i] = k // 1 だと、たまに偶然でぶっこわれるケースがあった。変動が激しいのでkに変更。
-            k--
-          } else {
+          if (scores[i] === initList[i]) {
+//          if (scores[i] === initList[i] || (n === 1 && i === 0)) {
             scores[i] = 0
           }
 
@@ -354,7 +360,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(10).fill('white'))
+    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(12).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})

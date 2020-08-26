@@ -1,7 +1,7 @@
 const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
-const purchaseNum = 70
+const purchaseNum = 80
 const idecoPurchaseNum = 2
 
 class SheetInfo {
