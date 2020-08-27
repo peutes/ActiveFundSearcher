@@ -62,7 +62,7 @@ class MinkabuFundsScoreCalculator {
       "米国厳選成長株集中投資ファンドBコース(為替ヘッジなし)(新世紀アメリカ~Yes,We Can!~)", "ニッセイ次世代医療ファンド", "ダイワ/ミレーアセット・グローバル・グレートコンシューマー株式ファンド(為替ヘッジあり)",
       "野村グローバルSRI100(野村世界社会的責任投資)", "ヘッジ付先進国株式インデックスオープン", "インデックスファンド海外株式ヘッジあり(DC専用)", "アジアオープン", "ダイワ新興企業株ファンド",
       "きらめきジャパン(きらめき)", "アムンディ・りそなグローバル・ブランド・ファンド(ティアラ)", "J-REITオープン(年4回決算型)", "JPM日本中小型株ファンド", "6資産バランスファンド(成長型)(ダブルウイング)",
-      
+      "グローバル・ボンド・ポート毎月決算コース(為替ヘッジなし)", "DIAMグローバル・ボンド・ポート毎月決算コース2(ぶんぱいくん)",
     ]
 //    this._blockList = ['^公社債投信.*月号$', '^野村・第.*回公社債投資信託$', '^MHAM・公社債投信.*月号$', '^日興・公社債投信.*月号$', '^大和・公社債投信.*月号$]
     this._blockList = []
@@ -122,13 +122,13 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        // 基本方針：シャープレシオが高くなるように頑張る。ただし、ちょっとだけリターンを意識する
-        // たった1/4でも、合計リターンがシャープレシオオンリーの時の1.5倍になった。1/8でも、☆2レベルの残念な債券ファンドが検出されたため、1/5で。）
+        // 基本方針：シャープレシオが高くなるように頑張る。ただし、ちょっとだけリターンを意識する。
         const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除
-        fund.scores[0][i] = Math.pow(Math.abs(r), 1 / 5) * fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-//        fund.scores[1][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]      // r^1.5/k
-        fund.scores[1][i] = fund.sharps[i] * Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[2][i] = Math.sqrt(Math.abs(r)) * fund.sharps[i]
+        const e = 0.25 // 0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35 を計算して、「20以上が78個で最も大きかった」0.25を選択。1.0だと71個、0や0.5だと74個と明確に差が出たので、「20以上が最も大きいもの」を採用。
+        const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
+        fund.scores[0][i] = Math.pow(Math.abs(r), e) * fund.sharps[i] * publicBondsFilter
+        fund.scores[1][i] = Math.pow(Math.abs(r), 0.2) * fund.sharps[i] * publicBondsFilter
+        fund.scores[2][i] = Math.pow(Math.abs(r), e) * fund.sharps[i]
       })
     })
   }
@@ -307,14 +307,14 @@ class MinkabuFundsScoreCalculator {
   
   _output() { 
     const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
-    const categoryCol = 3
-    const nameCol = 4
-    const isIdecoCol = 5
-    const totalScoreCol = 6
+    const categoryCol = 4
+    const nameCol = 5
+    const isIdecoCol = 6
+    const totalScoreCol = 7
 
     const data = []
     this._funds.forEach(fund => {
-      const row = [fund.link, fund.isRakuten, fund.category, fund.name, fund.isIdeco]
+      const row = [fund.link, fund.ignore, fund.isRakuten, fund.category, fund.name, fund.isIdeco]
       for (let i=0; i<scoresSize; i++) {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
@@ -349,7 +349,7 @@ class MinkabuFundsScoreCalculator {
     allRange.sort({column: totalScoreCol, ascending: false})
     
     sheet.insertRowBefore(1)
-    const topRow = ['リンク', '楽天', 'カテゴリ', '投資信託名称',  'iDeCo']
+    const topRow = ['リンク', '無視', '楽天', 'カテゴリ', '投資信託名称',  'iDeCo']
     for (let i=0; i<scoresSize; i++) {
       topRow.concat('トータルスコア', '6ヶ月', '1年', '3年', '5年', '10年', '')
     }
@@ -360,7 +360,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(12).fill('white'))
+    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(15).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
