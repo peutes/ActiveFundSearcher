@@ -1,7 +1,7 @@
 const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
-const purchaseNum = 80
+const purchaseNum = 75   // 楽天証券の最低積立価格が1000円単位のため、80にできない。
 const idecoPurchaseNum = 2
 
 class SheetInfo {

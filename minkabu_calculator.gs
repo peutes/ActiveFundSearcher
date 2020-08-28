@@ -123,12 +123,23 @@ class MinkabuFundsScoreCalculator {
         }
       
         // 基本方針：シャープレシオが高くなるように頑張る。ただし、ちょっとだけリターンを意識する。
-        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除
-        const e = 0.25 // 0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35 を計算して、「20以上が78個で最も大きかった」0.25を選択。1.0だと71個、0や0.5だと74個と明確に差が出たので、「20以上が最も大きいもの」を採用。
-        const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w)))
-        fund.scores[0][i] = Math.pow(Math.abs(r), e) * fund.sharps[i] * publicBondsFilter
-        fund.scores[1][i] = Math.pow(Math.abs(r), 0.2) * fund.sharps[i] * publicBondsFilter
-        fund.scores[2][i] = Math.pow(Math.abs(r), e) * fund.sharps[i]
+        // 6か月のデータが力入れすぎなので、√とって抑制する。
+        // 単純に r^2 だと、リターン重視しすぎて明らかにクソファンドが出てきたのでバランスが重要。
+        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
+        const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))) // グラフの形状的にlogより√が適任
+
+        // 結局、対数変換が感覚的にも最強
+        const f1 = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
+        const f2 = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
+
+        // 下方偏差の代用として、マイナスの時はリスクを二重にする
+        const f3 = r < 0 ? f1 / (fund.risks[i] + 1) : f1
+        const f4 = r < 0 ? f2 / (fund.risks[i] + 1) : f2
+
+        // 6か月のデータだけで勝ち上がるファンドを排除
+        fund.scores[0][i] = i === 0 ? (Math.sign(f3) * (Math.log(Math.abs(f3) + Math.E) - 1)) : f3
+        fund.scores[1][i] = f4
+        fund.scores[2][i] = fund.scores[0][i]
       })
     })
   }
@@ -146,9 +157,6 @@ class MinkabuFundsScoreCalculator {
           if (score === null) {
             return null
           }
-//          if (n === 1 && i === 0) {
-//            return null
-//          }
           return (score - aveList[i]) / srdList[i]
         })
       })
@@ -244,7 +252,6 @@ class MinkabuFundsScoreCalculator {
       for (let i=0; i<scoresList[0].length - 1; i++) {
         scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
           if (scores[i] === initList[i]) {
-//          if (scores[i] === initList[i] || (n === 1 && i === 0)) {
             scores[i] = 0
           }
 
@@ -288,7 +295,7 @@ class MinkabuFundsScoreCalculator {
   
   _fetchCategory() {
     for (let n=0; n<scoresSize; n++) {
-      if (n !== 0) {
+      if (n > 1) {
         return
       }
       
@@ -360,7 +367,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver', 'silver'].concat(new Array(15).fill('white'))
+    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'].concat(new Array(12).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})

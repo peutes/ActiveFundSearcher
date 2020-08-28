@@ -186,7 +186,12 @@ class MinkabuInfoScraper {
     const tables = Parser.data(html).from('<table class="md_table md_table_vertical">').to('</table>').iterate()
     const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
     fund.category = tds[1] // + '-' + tds[3
-
+      
+    const tds2 = Parser.data(tables[2]).from('<span class="gold_star">').to('</span>').iterate()
+    const count = (4 - (tables[2].match(/-/g) || []).length)
+    fund.isRakuten = count === 0 ? 0 : (tables[2].match(/★/g) || []).length / count
+      
+      
 //    const link2 = link + '/sales_company'
 //    const html2 = UrlFetchApp.fetch(link2).getContentText()
 //    const table2 = Parser.data(html2).from('<table class="md_table">').to('</table>').build()
