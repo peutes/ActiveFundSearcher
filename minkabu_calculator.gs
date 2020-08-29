@@ -122,18 +122,15 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        // 基本方針：シャープレシオが高くなるように頑張る。ただし、ちょっとだけリターンを意識する。
-        // 6か月のデータが力入れすぎなので、√とって抑制する。
-        // 単純に r^2 だと、リターン重視しすぎて明らかにクソファンドが出てきたのでバランスが重要。
         const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
         const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))) // グラフの形状的にlogより√が適任
 
         // 結局、対数変換が感覚的にも最強。上方への抑制も行う
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
-        const f = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
-        const f2 = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
-        fund.scores[0][i] = f2
-        fund.scores[1][i] = f2
+        const f = fund.sharps[i] * publicBondsFilter
+        const f2 = Math.log(Math.abs(r) + Math.E) * f
+        fund.scores[0][i] = Math.sign(f2) * (Math.log(Math.abs(f2) + Math.E) - 1)
+        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
