@@ -129,16 +129,9 @@ class MinkabuFundsScoreCalculator {
         const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))) // グラフの形状的にlogより√が適任
 
         // 結局、対数変換が感覚的にも最強
-        const f1 = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
-        const f2 = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
-
-        // 下方偏差の代用として、マイナスの時はリスクを二重にする
-        const f3 = r < 0 ? f1 / (fund.risks[i] + 1) : f1
-        const f4 = r < 0 ? f2 / (fund.risks[i] + 1) : f2
-
-        // 6か月のデータだけで勝ち上がるファンドを排除
-        fund.scores[0][i] = i === 0 ? (Math.sign(f3) * (Math.log(Math.abs(f3) + Math.E) - 1)) : f3
-        fund.scores[1][i] = f4
+        // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
+        fund.scores[0][i] = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
+        fund.scores[1][i] = fund.sharps[i] * publicBondsFilter
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
@@ -367,7 +360,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#d9d2e9', '#d9d2e9', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'].concat(new Array(12).fill('white'))
+    const colors = ['cyan', 'lime', 'yellow', 'orange', '#b4a7d6', '#b4a7d6', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'].concat(new Array(12).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
