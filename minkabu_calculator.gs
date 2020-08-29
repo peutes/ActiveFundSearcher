@@ -152,13 +152,10 @@ class MinkabuFundsScoreCalculator {
           if (score === null) {
             return null
           }
-          
-          // ルーキー枠制度：3年以上のデータがあるときは、6か月のデータを消す
-          if (n === 0 && i === 0 && fund.scores[n][2] !== null) {
-            return 0
-          }
-              
-          return (score - aveList[i]) / srdList[i]
+
+          // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。
+          const res = (score - aveList[i]) / srdList[i]
+          return i === 0 ? (fund.scores[n][2] !== null ? 0 : res / 2) : res
         })
       })
 
