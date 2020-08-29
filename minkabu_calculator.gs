@@ -228,8 +228,9 @@ class MinkabuFundsScoreCalculator {
 
     const rankMax = this._funds.size / 2
     let max = 0, finalRank = 0
+    const initAdd = Math.pow(10, -10)
     for (let rank=0; rank<rankMax; rank++) {
-      const initList = this._getInitList(n, rank)
+      const initList = this._getInitList(n, rank).map(s => s + initAdd)
       let scoresList = []
       this._funds.forEach(fund => {
         // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
@@ -361,7 +362,8 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    const colors = ['cyan', 'lime', 'yellow', 'orange', '#b4a7d6', '#b4a7d6', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'].concat(new Array(12).fill('white'))
+    let colors = ['cyan', 'lime', 'yellow', 'orange', '#b4a7d6', '#b4a7d6', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3']
+    colors = colors.concat(purchaseNum > 50 ? ['#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'] : []).concat(new Array(12).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
