@@ -124,12 +124,12 @@ class MinkabuFundsScoreCalculator {
       
         const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
         const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))) // グラフの形状的にlogより√が適任
-
+        
         // 結局、対数変換が感覚的にも最強。上方への抑制も行う
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
         const f = fund.sharps[i] * publicBondsFilter
-        const f2 = Math.log(Math.abs(r) + Math.E) * f
-        fund.scores[0][i] = Math.sign(f2) * (Math.log(Math.abs(f2) + Math.E) - 1)
+        const rf = Math.log(Math.abs(r) + Math.E) * f
+        fund.scores[0][i] = Math.sign(rf) * (Math.log(Math.abs(rf) + Math.E) - 1)
         fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
         fund.scores[2][i] = fund.scores[0][i]
       })
@@ -363,8 +363,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    let colors = ['cyan', 'lime', 'yellow', 'orange', '#b4a7d6', '#b4a7d6', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3']
-    colors = colors.concat(purchaseNum > 50 ? ['#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'] : []).concat(new Array(12).fill('white'))
+    let colors = ['cyan', 'lime', 'yellow', 'orange', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc'].concat(new Array(10).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})
