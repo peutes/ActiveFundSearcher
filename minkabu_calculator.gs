@@ -131,8 +131,9 @@ class MinkabuFundsScoreCalculator {
         // 結局、対数変換が感覚的にも最強。上方への抑制も行う
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
         const f = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
-        fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
-        fund.scores[1][i] = fund.scores[0][i]
+        const f2 = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
+        fund.scores[0][i] = f2
+        fund.scores[1][i] = f2
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
@@ -151,6 +152,12 @@ class MinkabuFundsScoreCalculator {
           if (score === null) {
             return null
           }
+          
+          // ルーキー枠制度：3年以上のデータがあるときは、6か月のデータを消す
+          if (n === 0 && i === 0 && fund.scores[n][2] !== null) {
+            return 0
+          }
+              
           return (score - aveList[i]) / srdList[i]
         })
       })
@@ -163,7 +170,7 @@ class MinkabuFundsScoreCalculator {
       this._funds.forEach(fund => {
         // ignore は消さないで、もしも購入可能になったときのスコア表示は残すため、false
         if (this._isTargetFund(n, fund, false)) {
-          fund.scores[n] = fund.scores[n].map((s, i) => 10 * (s || initList[i]))
+          fund.scores[n] = fund.scores[n].map((s, i) => 10 * (s !== null ? s : initList[i]))
           fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
         } else {
           fund.scores[n] = fund.scores[n].map(s => null)
@@ -236,7 +243,7 @@ class MinkabuFundsScoreCalculator {
         // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
         // ignoreは初期値の変動に影響する。
         if (this._isTargetFund(n, fund, true)) {
-          scoresList.push(fund.scores[n].map((s, i) => s || initList[i]))
+          scoresList.push(fund.scores[n].map((s, i) => s !== null ? s : initList[i]))
         }
       })
       
