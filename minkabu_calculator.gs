@@ -132,7 +132,7 @@ class MinkabuFundsScoreCalculator {
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
         const f = Math.log(Math.abs(r) + Math.E) * fund.sharps[i] * publicBondsFilter
         fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
-        fund.scores[1][i] = f
+        fund.scores[1][i] = fund.scores[0][i]
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
