@@ -9,21 +9,49 @@ class Fund {
     this.rate = null
     this.name = null
     this.ignore = false
-    this.returns = new Array(termSize).fill(null)
-    this.risks = new Array(termSize).fill(null)
-    this.sharps = new Array(termSize).fill(null)
+    this.returns = new Array(minkabuTermSize).fill(null)
+    this.risks = new Array(minkabuTermSize).fill(null)
+    this.sharps = new Array(minkabuTermSize).fill(null)
 
     this.scores = new Array(scoresSize)
     for (let i=0; i<scoresSize; i++) {
-      this.scores[i] = new Array(termSize).fill(null)
+      this.scores[i] = new Array(minkabuTermSize).fill(null)
     }
     this.totalScores = new Array(scoresSize).fill(0)
   }
 }
 
+class MinkabuSheetInfo {
+  constructor() {
+    this.linkSheetName = 'Link'
+    this.fundsSheetNames = [];
+    for (let i=0; i<fundsSheetMax; i++) {
+      this.fundsSheetNames.push('Funds' + i)
+    }
+    this.downsideRiskSheetName = 'Downside'
+    this.infoSheetName = 'Info'
+    this.logSheetName = 'Log'
+    
+    this.minkabuSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
+  }
+  
+  getScoreSheetName() {
+    const prefix = 'スコア：'
+    return prefix + (new Date().toLocaleString("ja")) 
+  }
+  
+  getSheet(name) {
+    return this.minkabuSpreadSheet.getSheetByName(name)
+  }
+
+  insertSheet(name) {
+    return this.minkabuSpreadSheet.insertSheet(name, 0)
+  }
+}
+
 class MinkabuRankingScraper {
   constructor() {
-    this._sheetInfo = new SheetInfo()
+    this._sheetInfo = new MinkabuSheetInfo()
     this._funds = new Map()
   }
 
@@ -96,7 +124,7 @@ class MinkabuRankingScraper {
 class MinkabuFundsScraper {
   constructor(fundsSheetNum) {
     this._fundsSheetNum = fundsSheetNum
-    this._sheetInfo = new SheetInfo()
+    this._sheetInfo = new MinkabuSheetInfo()
     this._fundSheetName = this._sheetInfo.fundsSheetNames[fundsSheetNum]
     this._funds = new Map()
   }
@@ -129,10 +157,10 @@ class MinkabuFundsScraper {
     
       // 3ヶ月のデータはスキップする
       fund.name = this._toHankaku(Parser.data(html).from('<p class="stock_name">').to('</p>').build())
-      for (let i=1; i<termSize + 1; i++) {
+      for (let i=1; i<minkabuTermSize + 1; i++) {
         const result1 = spanList[i].replace(/%/, '')
-        const result2 = spanList[(termSize + 1) + i].replace(/%/, '')
-        const result3 = spanList[2 * (termSize + 1) + i].replace(/%/, '')
+        const result2 = spanList[(minkabuTermSize + 1) + i].replace(/%/, '')
+        const result3 = spanList[2 * (minkabuTermSize + 1) + i].replace(/%/, '')
         fund.returns[i - 1] = result1 != '-' ? Number(result1) : null
         fund.risks[i - 1] = result2 != '-' ? Number(result2) : null
         fund.sharps[i - 1] = result3 != '-' ? Number(result3) : null
@@ -173,7 +201,7 @@ class MinkabuFundsScraper {
 
 class MinkabuInfoScraper {
   constructor() {
-    this._sheetInfo = new SheetInfo()
+    this._sheetInfo = new MinkabuSheetInfo()
   }
 
   scraping(fund) {

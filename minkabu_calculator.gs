@@ -1,6 +1,6 @@
 class MinkabuFundsScoreCalculator {
   constructor() {
-    this._sheetInfo = new SheetInfo() 
+    this._sheetInfo = new MinkabuSheetInfo() 
     this._infoScraper = new MinkabuInfoScraper()
     
     this._funds = new Map()
@@ -96,10 +96,10 @@ class MinkabuFundsScoreCalculator {
           return
         }
       
-        for (let i=0; i<termSize; i++) {
-          const return_ = value[4*i + termSize]
-          const risk = value[4*i + termSize + 1]
-          const sharp = value[4*i + termSize + 2]
+        for (let i=0; i<minkabuTermSize; i++) {
+          const return_ = value[4*i + minkabuTermSize]
+          const risk = value[4*i + minkabuTermSize + 1]
+          const sharp = value[4*i + minkabuTermSize + 2]
           if (return_ !== '') {
             fund.returns[i] = Number(return_)
           }
@@ -334,13 +334,13 @@ class MinkabuFundsScoreCalculator {
     sheet.autoResizeColumn(nameCol)
     
     for (let i=0; i<scoresSize; i++) {
-      sheet.getRange(1, totalScoreCol + i * (termSize + 2), lastRow).setFontWeight("bold")
+      sheet.getRange(1, totalScoreCol + i * (minkabuTermSize + 2), lastRow).setFontWeight("bold")
     }
 
     let n = 1
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, 1, 1, isIdecoCol + (termSize + 2) * (scoresSize - 1)).setBackground('gray')
+        sheet.getRange(n, 1, 1, isIdecoCol + (minkabuTermSize + 2) * (scoresSize - 1)).setBackground('gray')
       }
       if (fund.isIdeco) {
         sheet.getRange(n, isIdecoCol).setBackground('yellow')
@@ -371,10 +371,10 @@ class MinkabuFundsScoreCalculator {
     const nameRange = sheet.getRange(1, nameCol, lastRow)
     this._setHighRankColor(nameRange)
 
-    for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + termSize) - 1; i++) {
+    for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + minkabuTermSize) - 1; i++) {
       let c = false
       for (let j=1; j<scoresSize; j++) {
-        if (i === totalScoreCol + j * (termSize + 2) - 1) {
+        if (i === totalScoreCol + j * (minkabuTermSize + 2) - 1) {
           c = true
         }
       }

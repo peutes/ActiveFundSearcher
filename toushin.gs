@@ -30,7 +30,7 @@ class FundsDownsideRiskCalculator {
     const now = new Date()
     const endDate = new Date(now.getFullYear(), now.getMonth(), 1)
     endDate.setSeconds(endDate.getSeconds() -1)
-    const startDates = (new Array(termSize)).fill().map(_ => new Date(now.getFullYear(), now.getMonth(), 1))
+    const startDates = (new Array(toushinTermSize)).fill().map(_ => new Date(now.getFullYear(), now.getMonth(), 1))
     startDates[0].setMonth(startDates[0].getMonth() - 3)
     startDates[1].setMonth(startDates[1].getMonth() - 6)
     startDates[2].setFullYear(startDates[2].getFullYear() - 1)
@@ -42,7 +42,7 @@ class FundsDownsideRiskCalculator {
     startDates.forEach(d => console.log(d.toLocaleString()))
       
     const baseColNum = 2
-    const prices = (new Array(termSize)).fill().map(_ => [])
+    const prices = (new Array(toushinTermSize)).fill().map(_ => [])
     csv.slice(1)
       .map(d => {
         const matched = /(\d+)年(\d+)月(\d+)日/.exec(d[0]);

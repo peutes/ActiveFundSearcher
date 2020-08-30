@@ -1,37 +1,9 @@
-const termSize = 5
+const minkabuTermSize = 5
+const toushinTermSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
 const purchaseNum = 75 // 現在できる最大分散率は75。95%ラインの20を下回るけど、15以上ならいいだろうってことでこれで。そもそも厳密な正規分布じゃないので変動がある。
 const idecoPurchaseNum = 2
-
-class SheetInfo {
-  constructor() {
-    this.linkSheetName = 'Link'
-    this.fundsSheetNames = [];
-    for (let i=0; i<fundsSheetMax; i++) {
-      this.fundsSheetNames.push('Funds' + i)
-    }
-    this.downsideRiskSheetName = 'Downside'
-    this.infoSheetName = 'Info'
-    this.logSheetName = 'Log'
-    
-    this.minkabuSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-  }
-  
-  getScoreSheetName() {
-    const prefix = 'スコア：'
-    return prefix + (new Date().toLocaleString("ja")) 
-  }
-  
-  getSheet(name) {
-    return this.minkabuSpreadSheet.getSheetByName(name)
-  }
-
-  insertSheet(name) {
-    return this.minkabuSpreadSheet.insertSheet(name, 0)
-  }
-
-}
 
 function calcMinkabuFundsScore() {
   (new MinkabuFundsScoreCalculator).calc()
