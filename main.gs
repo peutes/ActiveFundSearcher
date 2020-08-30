@@ -1,7 +1,7 @@
 const termSize = 5
 const scoresSize = 3
 const fundsSheetMax = 12
-const purchaseNum = 60 // 理想は60だが、クレカ決済の保守が死ねるので50で。
+const purchaseNum = 50
 const idecoPurchaseNum = 2
 
 class SheetInfo {

@@ -127,10 +127,11 @@ class MinkabuFundsScoreCalculator {
         
         // 結局、対数変換が感覚的にも最強。上方への抑制も行う
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
+        // いろいろ考えたが、最終的に、シャープレシオだけが最高という結論に。まずはこれでやってみれ。
         const f = fund.sharps[i] * publicBondsFilter
-        const rf = Math.log(Math.abs(r) + Math.E) * f
-        fund.scores[0][i] = Math.sign(rf) * (Math.log(Math.abs(rf) + Math.E) - 1)
-        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
+//        const rf = Math.log(Math.log(Math.abs(r) + Math.E) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。ただのlogだと5倍くらいになっちゃうので考えた。
+        fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
+        fund.scores[1][i] = fund.scores[0][i]
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
@@ -152,7 +153,7 @@ class MinkabuFundsScoreCalculator {
 
           // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。
           const res = (score - aveList[i]) / srdList[i]
-          return i === 0 ? (fund.scores[n][2] !== null ? 0 : res / 2) : res
+          return n === 0 && i === 0 ? (fund.scores[n][2] !== null ? 0 : res / 2) : res
         })
       })
 
