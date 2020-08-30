@@ -129,6 +129,7 @@ class MinkabuFundsScoreCalculator {
         // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
         // いろいろ考えたが、最終的に、シャープレシオだけが最高という結論に。まずはこれでやってみれ。
         const f = fund.sharps[i] * publicBondsFilter
+//        const rf = Math.log(Math.abs(r) + Math.E) * f
 //        const rf = Math.log(Math.log(Math.abs(r) + Math.E) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。ただのlogだと5倍くらいになっちゃうので考えた。
         fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
         fund.scores[1][i] = fund.scores[0][i]
@@ -140,20 +141,31 @@ class MinkabuFundsScoreCalculator {
   _calcScores() {
     console.log('_calcScores')
 
+    const [_rrAveList, rrSrdList] = this._analysis(this._getReturnRiskList())
+
     for (let n=0; n<scoresSize; n++) {
       console.log("n", n)
 
       // 各期間ごとのスコアのバランスを整えるために標準化
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
+      
       this._funds.forEach(fund => {
         fund.scores[n] = fund.scores[n].map((score, i) => {
           if (score === null) {
             return null
           }
-
+      
           // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。
-          const res = (score - aveList[i]) / srdList[i]
-          return n === 0 && i === 0 ? (fund.scores[n][2] !== null ? 0 : res / 2) : res
+          // マイナススコア評価：マイナス時はリスクの意味合いがかわり、シャープレシオが使えなくなるため、評価方法を変える。√は取らないで単純に掛け算するのが正規分布に最も近くて結合しやすい。
+          // 二つの正規分布を結合する
+          const minusScores = fund.returns[i] * fund.risks[i]
+          
+          const plusRes = (score - aveList[i]) / srdList[i]
+          const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
+          const res = fund.returns[i] >= 0 ? plusRes : minusRes
+          
+          const res0 = fund.scores[n][2] !== null ? 0 : res / 2
+          return n === 0 && i === 0 ? res0 : res
         })
       })
 
@@ -198,6 +210,12 @@ class MinkabuFundsScoreCalculator {
   _getScoresList(n) {
     const scoresList = []
     this._funds.forEach(fund => scoresList.push(fund.scores[n]))
+    return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
+  }
+
+  _getReturnRiskList() {
+    const scoresList = []
+    this._funds.forEach(fund => scoresList.push(fund.returns.map((r, i) => r * fund.risks[i])))
     return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
   }
 
