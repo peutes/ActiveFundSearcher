@@ -6,30 +6,11 @@ function myFunction() {
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);
-  spreadsheet.getRange('D2:D61').activate();
+  spreadsheet.getRange('D2:D76').activate();
   var sheet = spreadsheet.getActiveSheet();
   var chart = sheet.newChart()
-  .asLineChart()
-  .addRange(spreadsheet.getRange('D2:D61'))
-  .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
-  .setTransposeRowsAndColumns(false)
-  .setNumHeaders(0)
-  .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
-  .setOption('applyAggregateData', 0)
-  .setOption('useFirstColumnAsDomain', true)
-  .setOption('isStacked', 'false')
-  .setOption('title', '「カテゴリ」のカウント数')
-  .setXAxisTitle('「カテゴリ」のカウント数')
-  .setOption('series.0.aggregateFunction', 'count')
-  .setPosition(42, 5, 302, 12)
-  .build();
-  sheet.insertChart(chart);
-  var charts = sheet.getCharts();
-  chart = charts[charts.length - 1];
-  sheet.removeChart(chart);
-  chart = sheet.newChart()
   .asPieChart()
-  .addRange(spreadsheet.getRange('D2:D61'))
+  .addRange(spreadsheet.getRange('D2:D76'))
   .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
   .setTransposeRowsAndColumns(false)
   .setNumHeaders(0)
@@ -38,13 +19,13 @@ function myFunction() {
   .setOption('bubble.stroke', '#000000')
   .setOption('useFirstColumnAsDomain', true)
   .setOption('isStacked', 'false')
-  .setOption('title', '「カテゴリ」のカウント数')
+  .setOption('title', '「分類」')
   .setOption('annotations.domain.textStyle.color', '#808080')
   .setOption('textStyle.color', '#000000')
   .setOption('legend.textStyle.color', '#191919')
   .setOption('titleTextStyle.color', '#757575')
   .setOption('annotations.total.textStyle.color', '#808080')
-  .setPosition(42, 5, 302, 12)
+  .setPosition(10, 10, 302, 12)
   .build();
   sheet.insertChart(chart);
 };
@@ -57,30 +38,11 @@ function myFunction1() {
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);
-  spreadsheet.getRange('D2:D61').activate();
+  spreadsheet.getRange('D2:D76').activate();
   var sheet = spreadsheet.getActiveSheet();
   var chart = sheet.newChart()
-  .asLineChart()
-  .addRange(spreadsheet.getRange('D2:D61'))
-  .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
-  .setTransposeRowsAndColumns(false)
-  .setNumHeaders(0)
-  .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
-  .setOption('applyAggregateData', 0)
-  .setOption('useFirstColumnAsDomain', true)
-  .setOption('isStacked', 'false')
-  .setOption('title', '「カテゴリ」のカウント数')
-  .setXAxisTitle('「カテゴリ」のカウント数')
-  .setOption('series.0.aggregateFunction', 'count')
-  .setPosition(42, 5, 302, 12)
-  .build();
-  sheet.insertChart(chart);
-  var charts = sheet.getCharts();
-  chart = charts[charts.length - 1];
-  sheet.removeChart(chart);
-  chart = sheet.newChart()
   .asPieChart()
-  .addRange(spreadsheet.getRange('D2:D61'))
+  .addRange(spreadsheet.getRange('D2:D76'))
   .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
   .setTransposeRowsAndColumns(false)
   .setNumHeaders(0)
@@ -89,13 +51,13 @@ function myFunction1() {
   .setOption('bubble.stroke', '#000000')
   .setOption('useFirstColumnAsDomain', true)
   .setOption('isStacked', 'false')
-  .setOption('title', '「カテゴリ」のカウント数')
+  .setOption('title', '「分類」')
   .setOption('annotations.domain.textStyle.color', '#808080')
   .setOption('textStyle.color', '#000000')
   .setOption('legend.textStyle.color', '#191919')
   .setOption('titleTextStyle.color', '#757575')
   .setOption('annotations.total.textStyle.color', '#808080')
-  .setPosition(42, 5, 302, 12)
+  .setPosition(10, 10, 302, 12)
   .build();
   sheet.insertChart(chart);
 };
