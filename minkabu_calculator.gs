@@ -121,51 +121,61 @@ class MinkabuFundsScoreCalculator {
         if (r === null || fund.risks[i] === null || fund.sharps[i] === null) {
           return
         }
-      
-        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
-        const publicBondsFilter = Math.sqrt(Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))) // グラフの形状的にlogより√が適任
         
-        // 結局、対数変換が感覚的にも最強。上方への抑制も行う
-        // マイナス時にリスクを操作しようといろいろと試行錯誤したが、正規分布の形が壊れるダメージがでかかったため断念した。
+        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
+        const publicBondsFilter = Math.sqrt(
+          Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
+        ) // グラフの形状的にフィルタとしてlogより√が適任
+        
         // いろいろ考えたが、最終的に、シャープレシオだけが最高という結論に。まずはこれでやってみれ。
         const f = fund.sharps[i] * publicBondsFilter
 //        const rf = Math.log(Math.abs(r) + Math.E) * f
 //        const rf = Math.log(Math.log(Math.abs(r) + Math.E) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。ただのlogだと5倍くらいになっちゃうので考えた。
         fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
-        fund.scores[1][i] = fund.scores[0][i]
+        fund.scores[1][i] = f // リスクが小さくなりやすい1年がやっぱり強くなりやすい傾向がある
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
   }
   
+  _calcMinusScores(fund, i) {
+    return fund.returns[i] * fund.risks[i] // returnをlogや√をとると正規分布では無くなる
+  }
+  
   _calcScores() {
     console.log('_calcScores')
 
-    const [_rrAveList, rrSrdList] = this._analysis(this._getReturnRiskList())
+    // マイナスの時の正規分布作成用データ
+    let rrScoresList = []
+    this._funds.forEach(fund => rrScoresList.push(
+      fund.returns.map((r, i) => this._calcMinusScores(fund, i))
+    ))
+    rrScoresList = this._transposeAndFilter(rrScoresList)
+    const [_rrAveList, rrSrdList] = this._analysis(rrScoresList)
 
     for (let n=0; n<scoresSize; n++) {
       console.log("n", n)
 
+      // 正規分布の分散がむだに増えることを防ぐため、ワースト100を消す      
       // 各期間ごとのスコアのバランスを整えるために標準化
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       
       this._funds.forEach(fund => {
-        fund.scores[n] = fund.scores[n].map((score, i) => {
+     　　fund.scores[n] = fund.scores[n].map((score, i) => {
           if (score === null) {
             return null
           }
       
-          // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。
-          // マイナススコア評価：マイナス時はリスクの意味合いがかわり、シャープレシオが使えなくなるため、評価方法を変える。√は取らないで単純に掛け算するのが正規分布に最も近くて結合しやすい。
+          // マイナススコア評価：マイナス時はリスクの意味合いがかわり、シャープレシオが使えなくなるため、評価方法を変える。
           // 二つの正規分布を結合する
-          const minusScores = fund.returns[i] * fund.risks[i]
-          
+          const minusScores = this._calcMinusScores(fund, n, i)
           const plusRes = (score - aveList[i]) / srdList[i]
           const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
           const res = fund.returns[i] >= 0 ? plusRes : minusRes
-          
+
+          // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。          
           const res0 = fund.scores[n][2] !== null ? 0 : res / 2
-          return n === 0 && i === 0 ? res0 : res
+          return i === 0 ? res0 : res
         })
       })
 
@@ -193,7 +203,8 @@ class MinkabuFundsScoreCalculator {
         }
       })
       const ave = totalScores.reduce((acc, v) => acc + v, 0) / totalScores.length
-      const srd = Math.sqrt(totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length)
+      const ave2 = totalScores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / totalScores.length
+      const srd = Math.sqrt(ave2)
       this._funds.forEach(fund => {
         if (this._isTargetFund(n, fund, false)) {
           fund.totalScores[n] = 10 * (fund.totalScores[n] - ave) / srd
@@ -201,7 +212,7 @@ class MinkabuFundsScoreCalculator {
       })
     }
   }
-  
+    
   _isTargetFund(n, fund, useIgnore) {
     const isIdecoScores = this._isIdecoScores(n)
     return (!isIdecoScores && !(useIgnore && fund.ignore)) || (isIdecoScores && fund.isIdeco)    // iDeCoは ignore無視
@@ -210,12 +221,10 @@ class MinkabuFundsScoreCalculator {
   _getScoresList(n) {
     const scoresList = []
     this._funds.forEach(fund => scoresList.push(fund.scores[n]))
-    return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
+    return this._transposeAndFilter(scoresList)
   }
 
-  _getReturnRiskList() {
-    const scoresList = []
-    this._funds.forEach(fund => scoresList.push(fund.returns.map((r, i) => r * fund.risks[i])))
+  _transposeAndFilter(scoresList) {
     return scoresList[0].map((_, i) => scoresList.map(r => r[i]).filter(Boolean)) // transpose
   }
 
@@ -227,7 +236,7 @@ class MinkabuFundsScoreCalculator {
     
     const srdList = scoresList.map((scores, i) => {
       const sum = scores.reduce((acc, v) => acc + Math.pow(v - aveList[i], 2), 0)
-      return Math.sqrt(sum / scores.length)
+      return Math.sqrt(sum / (scores.length - 1))
     })
     
 //    const maxList = scoresList.map(s => Math.max(...s))
@@ -256,22 +265,27 @@ class MinkabuFundsScoreCalculator {
         // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
         // ignoreは初期値の変動に影響する。
         if (this._isTargetFund(n, fund, true)) {
-          scoresList.push(fund.scores[n].map((s, i) => s !== null ? s : initList[i]))
+          scoresList.push(
+            fund.scores[n].map((s, i) => s !== null ? s : initList[i])
+          )
         }
       })
       
       // ラストはトータルスコア
-      scoresList = scoresList.map(scores => scores.concat(scores.reduce((acc, v) => acc + v, 0))) // pushは元を上書きするので禁止
+      scoresList = scoresList.map(scores => scores.concat(
+        scores.reduce((acc, v) => acc + v, 0)
+      )) // pushは元を上書きするので禁止
       
       // 初期値を設定したときに、初期値「以外」のスコアが最大になるように設定する。
       for (let i=0; i<scoresList[0].length - 1; i++) {
-        scoresList = scoresList.sort((s1, s2) => s2[i] - s1[i]).map(scores => {
-          if (scores[i] === initList[i]) {
-            scores[i] = 0
-          }
-
-          return scores
-        })
+        scoresList = scoresList
+          .sort((s1, s2) => s2[i] - s1[i])
+          .map(scores => {
+            if (scores[i] === initList[i]) {
+              scores[i] = 0
+            }
+            return scores
+          })
       }
       scoresList = scoresList
         .sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1])
@@ -382,7 +396,8 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    let colors = ['cyan', 'lime', 'yellow', 'orange', '#ea9999', '#ea9999', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver'].concat(new Array(12).fill('white'))
+    let colors = ['cyan', 'lime', 'yellow', 'orange', '#ea9999', '#ea9999', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver']
+      .concat(new Array(12).fill('white'))
     const colorNum = 5
     
     allRange.sort({column: totalScoreCol, ascending: false})

@@ -212,7 +212,9 @@ class MinkabuInfoScraper {
     const link = /(.*)\/.*/.exec(fund.link)[1]
     const html = UrlFetchApp.fetch(link).getContentText()
     const tables = Parser.data(html).from('<table class="md_table md_table_vertical">').to('</table>').iterate()
-    const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate().map(t => t.replace(' colspan="3"', '').replace('>', ''))
+    const tds = Parser.data(tables[1]).from('<td').to('</td>').iterate()
+      .map(t => t.replace(' colspan="3"', '').replace('>', ''))
+
     fund.category = tds[1] // + '-' + tds[3
       
     const tds2 = Parser.data(tables[2]).from('<span class="gold_star">').to('</span>').iterate()
