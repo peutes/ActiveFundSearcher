@@ -128,11 +128,12 @@ class MinkabuFundsScoreCalculator {
         ) // グラフの形状的にフィルタとしてlogより√が適任
         
         // いろいろ考えたが、最終的に、シャープレシオだけが最高という結論に。まずはこれでやってみれ。
+        // ただし上方が爆発しすぎてるので、log(√x)で考える。期間ごとの比率があまりにも崩れすぎないように・・・
         const f = fund.sharps[i] * publicBondsFilter
 //        const rf = Math.log(Math.abs(r) + Math.E) * f
 //        const rf = Math.log(Math.log(Math.abs(r) + Math.E) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。ただのlogだと5倍くらいになっちゃうので考えた。
-        fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
-        fund.scores[1][i] = f // リスクが小さくなりやすい1年がやっぱり強くなりやすい傾向がある
+        fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs((Math.log(Math.abs(f) + Math.E) - 1)) + Math.E) - 1)
+        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
@@ -161,14 +162,14 @@ class MinkabuFundsScoreCalculator {
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       
       this._funds.forEach(fund => {
-     　　fund.scores[n] = fund.scores[n].map((score, i) => {
+        fund.scores[n] = fund.scores[n].map((score, i) => {
           if (score === null) {
             return null
           }
       
           // マイナススコア評価：マイナス時はリスクの意味合いがかわり、シャープレシオが使えなくなるため、評価方法を変える。
           // 二つの正規分布を結合する
-          const minusScores = this._calcMinusScores(fund, n, i)
+          const minusScores = this._calcMinusScores(fund, i)
           const plusRes = (score - aveList[i]) / srdList[i]
           const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
           const res = fund.returns[i] >= 0 ? plusRes : minusRes
@@ -324,7 +325,7 @@ class MinkabuFundsScoreCalculator {
   
   _fetchCategory() {
     for (let n=0; n<scoresSize; n++) {
-      if (n > 0) {
+      if (n > 1) {
         return
       }
       
