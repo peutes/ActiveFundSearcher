@@ -122,7 +122,7 @@ class MinkabuFundsScoreCalculator {
           return
         }
         
-        const w = 0.3  // リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
+        const w = 0.3  // シャープレシオの副作用。リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
         const publicBondsFilter = Math.sqrt(
           Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
         ) // グラフの形状的にフィルタとしてlogより√が適任
@@ -132,8 +132,8 @@ class MinkabuFundsScoreCalculator {
         const f = fund.sharps[i] * publicBondsFilter
 //        const rf = Math.log(Math.abs(r) + Math.E) * f
 //        const rf = Math.log(Math.log(Math.abs(r) + Math.E) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。ただのlogだと5倍くらいになっちゃうので考えた。
-        fund.scores[0][i] = Math.sign(f) * (Math.log(Math.abs((Math.log(Math.abs(f) + Math.E) - 1)) + Math.E) - 1)
-        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1)
+        fund.scores[0][i] = f
+        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1) // 抑制が意味がない気がする。だって75個目にはほぼ影響しない。しかもマイナススコアとの相性が悪い。
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
