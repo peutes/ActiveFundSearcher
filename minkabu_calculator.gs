@@ -160,7 +160,7 @@ class MinkabuFundsScoreCalculator {
       console.log("n", n)
 
       // 正規分布の分散がむだに増えることを防ぐため、ワースト100を消す      
-      // 各期間ごとのスコアのバランスを整えるために標準化
+      // 各期間ごとのスコアのバランスを整えるために標準化してZスコアを使う
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       
       this._funds.forEach(fund => {
@@ -170,15 +170,15 @@ class MinkabuFundsScoreCalculator {
           }
       
           // マイナススコア評価：マイナス時はリスクの意味合いがかわり、シャープレシオが使えなくなるため、評価方法を変える。
-          // 二つの正規分布を結合する
+          // 二つの正規分布を結合して、Zスコアを計算する
           const minusScores = this._calcMinusScores(fund, i)
           const plusRes = (score - aveList[i]) / srdList[i]
           const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
-          const res = fund.returns[i] >= 0 ? plusRes : minusRes
+          const z = fund.returns[i] >= 0 ? plusRes : minusRes
 
           // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。          
-          const res0 = fund.scores[n][2] !== null ? 0 : res / 2
-          return i === 0 ? res0 : res
+          const z0 = fund.scores[n][2] !== null ? 0 : z / 2
+          return i === 0 ? z0 : z
         })
       })
 
