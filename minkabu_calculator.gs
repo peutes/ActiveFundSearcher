@@ -123,9 +123,9 @@ class MinkabuFundsScoreCalculator {
           return
         }
 
-        // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすい。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。債券ファンドを完全に除去するわけではないが、デフォルトだとゴミが多すぎる。。。
+        // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすい。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。債券ファンドはデフォルトだとゴミがあまりにも多すぎる。。。
         // このルートを取ると結構強力に債券ファンドが一掃される。
-        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) // シャープレシオは1以下も多いため、sqrtすると逆に増加するので外している
+        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
         const f = fund.sharps[i] * filter
         const rf = (Math.log(Math.log(Math.abs(r) + Math.E)) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。強い債券ファンドは生き残る仕様。ただのlogだと5倍くらいになっちゃうのでこっちを採用。
 
