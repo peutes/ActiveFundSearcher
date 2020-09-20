@@ -63,7 +63,7 @@ class MinkabuFundsScoreCalculator {
       "野村グローバルSRI100(野村世界社会的責任投資)", "ヘッジ付先進国株式インデックスオープン", "インデックスファンド海外株式ヘッジあり(DC専用)", "アジアオープン", "ダイワ新興企業株ファンド",
       "きらめきジャパン(きらめき)", "アムンディ・りそなグローバル・ブランド・ファンド(ティアラ)", "J-REITオープン(年4回決算型)", "JPM日本中小型株ファンド", "6資産バランスファンド(成長型)(ダブルウイング)",
       "グローバル・ボンド・ポート毎月決算コース(為替ヘッジなし)", "DIAMグローバル・ボンド・ポート毎月決算コース2(ぶんぱいくん)", "生活基盤関連株式ファンド(ゆうゆう街道)",
-      "アムンディ・グラン・チャイナ・ファンド", 
+      "アムンディ・グラン・チャイナ・ファンド", "浪花おふくろファンド(おふくろファンド)", 
     ]
 //    this._blockList = ['^公社債投信.*月号$', '^野村・第.*回公社債投資信託$', '^MHAM・公社債投信.*月号$', '^日興・公社債投信.*月号$', '^大和・公社債投信.*月号$]
     this._blockList = []
@@ -125,14 +125,17 @@ class MinkabuFundsScoreCalculator {
 
         // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすい。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。債券ファンドはデフォルトだとゴミがあまりにも多すぎる。。。
         // このルートを取ると結構強力に債券ファンドが一掃される。
-        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
-        const f = fund.sharps[i] * filter
-        const rf = (Math.log(Math.log(Math.abs(r) + Math.E)) + 1) * f // リターン重視でも最大でも2倍くらいにしかならない補正。債権が1倍、株が2倍のイメージ。グラフを見て決定。強い債券ファンドは生き残る仕様。ただのlogだと5倍くらいになっちゃうのでこっちを採用。
+//        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) * Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(r))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
+//        const filter2 = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) * Math.sqrt(fund.risks[i] * fund.risks[i] / (fund.risks[i] * fund.risks[i] +  Math.abs(r) * Math.abs(r))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
+//        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.sqrt(Math.abs(fund.sharps[i]))))
 
-        // 何度も考えてるけど、債券多くても今はそれが最適だとシスティマティックにシャープレシオ方式で出てるんだから受け入れなさい。この1年は債権が強かったのもあり仕方がない。あと株は株でもハイテク株高めなので、これ以上リスク減らすのは怖い。
-        // そして個数を変動したときに別方式に切り替えるのがまじで面倒すぎるのでシャープレシオ最強でいい。リターンを重視する論理的な説明ができないのでrfはない。
-        fund.scores[0][i] = f
-        fund.scores[1][i] = rf
+        const w = 0.3  // シャープレシオの副作用。リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
+        const filter = Math.sqrt(
+          Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
+        ) // グラフの形状的にフィルタとしてlogより√が適任
+        
+        fund.scores[0][i] = Math.sign(fund.sharps[i]) * Math.sqrt(Math.abs(fund.sharps[i])) * filter
+        fund.scores[1][i] = fund.sharps[i] * filter
 //        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1) // 上方への抑制が意味がない気がしたのでこの方式は撤回。だって末端の75個目にはほぼ影響しない。しかもマイナススコアとの相性が悪い。
         fund.scores[2][i] = fund.scores[0][i]
       })
@@ -157,7 +160,6 @@ class MinkabuFundsScoreCalculator {
     for (let n=0; n<scoresSize; n++) {
       console.log("n", n)
 
-      // 正規分布の分散がむだに増えることを防ぐため、ワースト100を消す      
       // 各期間ごとのスコアのバランスを整えるために標準化してZスコアを使う
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       
@@ -173,11 +175,11 @@ class MinkabuFundsScoreCalculator {
           const plusRes = (score - aveList[i]) / srdList[i]
           const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
           const z = fund.returns[i] >= 0 ? plusRes : minusRes
-
-          // ルーキー枠制度：3年以上のデータがあるときは、6か月のスコアを無効にする。ルーキー枠は半分にする。          
-//          const z0 = fund.scores[n][2] !== null ? 0 : z / 2
-//          return i === 0 ? z0 : z
-          return i === 0 ? 0 : z
+          
+          // ルーキー枠制度。6ヶ月のデータを重み付け
+          const y = fund.scores[n][2] === null ? 1 : (fund.scores[n][3] === null ? 3 : (fund.scores[n][4] === null ? 5 : 10))
+          const z0 = z / (2 * y)
+          return i === 0 ? z0 : z
         })
       })
 

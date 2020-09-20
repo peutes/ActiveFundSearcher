@@ -216,11 +216,10 @@ class MinkabuInfoScraper {
       .map(t => t.replace(' colspan="3"', '').replace('>', ''))
 
     fund.category = tds[1] // + '-' + tds[3
-      
+    
     const tds2 = Parser.data(tables[2]).from('<span class="gold_star">').to('</span>').iterate()
     const count = (4 - (tables[2].match(/-/g) || []).length)
     fund.isRakuten = count === 0 ? 0 : (tables[2].match(/★/g) || []).length / count
-      
       
 //    const link2 = link + '/sales_company'
 //    const html2 = UrlFetchApp.fetch(link2).getContentText()
