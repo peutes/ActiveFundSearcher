@@ -134,9 +134,9 @@ class MinkabuFundsScoreCalculator {
           Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
         ) // グラフの形状的にフィルタとしてlogより√が適任
         
-        fund.scores[0][i] = Math.sign(fund.sharps[i]) * Math.sqrt(Math.abs(fund.sharps[i])) * filter
+        // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
+        fund.scores[0][i] = fund.sharps[i] * filter
         fund.scores[1][i] = fund.sharps[i] * filter
-//        fund.scores[1][i] = Math.sign(f) * (Math.log(Math.abs(f) + Math.E) - 1) // 上方への抑制が意味がない気がしたのでこの方式は撤回。だって末端の75個目にはほぼ影響しない。しかもマイナススコアとの相性が悪い。
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
@@ -176,10 +176,12 @@ class MinkabuFundsScoreCalculator {
           const minusRes = minusScores / rrSrdList[i] - aveList[i] / srdList[i]
           const z = fund.returns[i] >= 0 ? plusRes : minusRes
           
-          // ルーキー枠制度。6ヶ月のデータを重み付け
-          const y = fund.scores[n][2] === null ? 1 : (fund.scores[n][3] === null ? 3 : (fund.scores[n][4] === null ? 5 : 10))
-          const z0 = z / (2 * y)
-          return i === 0 ? z0 : z
+          // ルーキー枠制度。6ヶ月のデータを重み付け加算
+//          if (n === 1) {
+//            const y = fund.scores[n][2] === null ? 1 : (fund.scores[n][3] === null ? 3 : (fund.scores[n][4] === null ? 5 : 10))
+//            return i === 0 ? z / (2 * y) : z
+//          }
+          return i === 0 ? 0 : z      
         })
       })
 
