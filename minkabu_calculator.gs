@@ -123,20 +123,18 @@ class MinkabuFundsScoreCalculator {
           return
         }
 
-        // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすい。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。債券ファンドはデフォルトだとゴミがあまりにも多すぎる。。。
-        // このルートを取ると結構強力に債券ファンドが一掃される。
-//        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) * Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(r))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
-//        const filter2 = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.abs(fund.sharps[i]))) * Math.sqrt(fund.risks[i] * fund.risks[i] / (fund.risks[i] * fund.risks[i] +  Math.abs(r) * Math.abs(r))) // シャープレシオは1以下も多いため、sqrt(fund.sharps[i])すると逆に増加するので注意
-//        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.sqrt(Math.abs(fund.sharps[i]))))
+        // 問題だった8月のシャープレシオにこのフィルタを通した比較分布を見て決定。
+        // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
+        const filter = fund.risks[i] === 0 ? 0 : Math.sqrt(fund.risks[i] / (fund.risks[i] + Math.sqrt(Math.abs(fund.sharps[i]))))
 
         const w = 0.3  // シャープレシオの副作用。リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
-        const filter = Math.sqrt(
+        const filter2 = Math.sqrt(
           Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
         ) // グラフの形状的にフィルタとしてlogより√が適任
         
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
         fund.scores[0][i] = fund.sharps[i] * filter
-        fund.scores[1][i] = fund.sharps[i] * filter
+        fund.scores[1][i] = fund.sharps[i] * filter2
         fund.scores[2][i] = fund.scores[0][i]
       })
     })
