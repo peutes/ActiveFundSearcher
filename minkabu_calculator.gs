@@ -126,7 +126,7 @@ class MinkabuFundsScoreCalculator {
         // 問題だった8月のシャープレシオにこのフィルタを通した比較分布を見て決定。
         // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
         // 全体利益を優先し、あい・パワーの存在は犠牲にする。
-        const filter = fund.risks[i] === 0 ? 0 : Math.pow(Math.pow(fund.risks[i], 2) / (Math.pow(fund.risks[i], 2) + Math.abs(fund.sharps[i])), 2) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
+        const filter = fund.risks[i] === 0 ? 0 : Math.pow(Math.pow(fund.risks[i], 3) / (Math.pow(fund.risks[i], 3) + Math.abs(fund.sharps[i])), 3) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
         
         const w = 0.3  // シャープレシオの副作用。リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
         const filter2 = Math.sqrt(
