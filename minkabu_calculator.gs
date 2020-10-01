@@ -177,23 +177,21 @@ class MinkabuFundsScoreCalculator {
           const z = fund.returns[i] >= 0 ? plusRes : minusRes
           
           // ルーキー枠制度。6ヶ月のデータを重み付け加算
-//          if (n === 1) {
-//            const y = fund.scores[n][2] === null ? 1 : (fund.scores[n][3] === null ? 3 : (fund.scores[n][4] === null ? 5 : 10))
-//            return i === 0 ? z / (2 * y) : z
-//          }
+//          const y = fund.scores[n][2] === null ? 1 : (fund.scores[n][3] === null ? 3 : (fund.scores[n][4] === null ? 5 : 10))
+//          return i === 0 ? z / (2 * y) : z
           return i === 0 ? 0 : z      
         })
       })
 
       // 初期値を自動決定するのに各期間のスコアのランキングを使う
-      const rank = this._calcRank(n)
-      const initList = this._getInitList(n, rank)
-      console.log("initList", initList)
+//      const rank = this._calcRank(n)
+//      const initList = this._getInitList(n, rank)
+//      console.log("initList", initList)
       
       this._funds.forEach(fund => {
         // ignore は消さないで、もしも購入可能になったときのスコア表示は残すため、false
         if (this._isTargetFund(n, fund, false)) {
-          fund.scores[n] = fund.scores[n].map((s, i) => 10 * (s !== null ? s : initList[i]))
+          fund.scores[n] = fund.scores[n].map((s, i) => s !== null ? 10 * s : 0)
           fund.totalScores[n] = fund.scores[n].reduce((acc, score) => acc + score, 0)
         } else {
           fund.scores[n] = fund.scores[n].map(s => null)
@@ -256,77 +254,79 @@ class MinkabuFundsScoreCalculator {
     console.log("aveList", aveList, "srdList", srdList)
     return [aveList, srdList]
   }
-  
-  // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
-  _calcRank(n) {
-    const selectedNum = this._isIdecoScores(n) ? idecoPurchaseNum : purchaseNum
 
-    const rankMax = this._funds.size / 2
-    let max = 0, finalRank = 0
-    const initAdd = Math.pow(10, -10)
-    for (let rank=0; rank<rankMax; rank++) {
-      const initList = this._getInitList(n, rank).map(s => s + initAdd)
-      let scoresList = []
-      this._funds.forEach(fund => {
-        // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
-        // ignoreは初期値の変動に影響する。
-        if (this._isTargetFund(n, fund, true)) {
-          scoresList.push(
-            fund.scores[n].map((s, i) => s !== null ? s : initList[i])
-          )
-        }
-      })
-      
-      // ラストはトータルスコア
-      scoresList = scoresList.map(scores => scores.concat(
-        scores.reduce((acc, v) => acc + v, 0)
-      )) // pushは元を上書きするので禁止
-      
-      // 初期値を設定したときに、初期値「以外」のスコアが最大になるように設定する。
-      for (let i=0; i<scoresList[0].length - 1; i++) {
-        scoresList = scoresList
-          .sort((s1, s2) => s2[i] - s1[i])
-          .map(scores => {
-            if (scores[i] === initList[i]) {
-              scores[i] = 0
-            }
-            return scores
-          })
-      }
-      scoresList = scoresList
-        .sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1])
-        .slice(0, selectedNum)
+// 研究の結果、デフォルト値は最も総合スコアを高める値は0に収束するという結論が出たためランキング利用は不要に
 
-      let sum = 0
-      const indicator = scoresList.map(scores => {
-        for (let i=0; i<scoresList[0].length - 1; i++) {
-          sum += scores[i]
-        }
-      })
-      if (sum > max) {
-        finalRank = rank
-        max = sum
-      }
-
-      const l = [[rank, sum]]
-      this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
-    }
-
-    this.logSheet.getRange(rankMax + 2, 2 * n + 1).setValue(finalRank)
-    console.log('_calcRank:rank', finalRank)    
-
-    return finalRank
-  }
-  
-  _getInitList(n, rank) {
-    return this._getScoresList(n).map((scores, i) => {
-      if (scores.length === 0) {
-        return 0
-      }
-      scores.sort((a, b) => b - a)
-      return scores[Math.min(rank, scores.length - 1)]
-    })
-  }
+//  // useNum: トータルスコアをどこまで見るか？ 同時購入数を設定
+//  _calcRank(n) {
+//    const selectedNum = this._isIdecoScores(n) ? idecoPurchaseNum : purchaseNum
+//
+//    const rankMax = this._funds.size / 2
+//    let max = 0, finalRank = 0
+//    const initAdd = Math.pow(10, -10)
+//    for (let rank=0; rank<rankMax; rank++) {
+//      const initList = this._getInitList(n, rank).map(s => s + initAdd)
+//      let scoresList = []
+//      this._funds.forEach(fund => {
+//        // 最終スコアの調整のため、全てのデータを使わず、ターゲットになってるスコアしか対象にしないため、true
+//        // ignoreは初期値の変動に影響する。
+//        if (this._isTargetFund(n, fund, true)) {
+//          scoresList.push(
+//            fund.scores[n].map((s, i) => s !== null ? s : initList[i])
+//          )
+//        }
+//      })
+//      
+//      // ラストはトータルスコア
+//      scoresList = scoresList.map(scores => scores.concat(
+//        scores.reduce((acc, v) => acc + v, 0)
+//      )) // pushは元を上書きするので禁止
+//      
+//      // 初期値を設定したときに、初期値「以外」のスコアが最大になるように設定する。
+//      for (let i=0; i<scoresList[0].length - 1; i++) {
+//        scoresList = scoresList
+//          .sort((s1, s2) => s2[i] - s1[i])
+//          .map(scores => {
+//            if (scores[i] === initList[i]) {
+//              scores[i] = 0
+//            }
+//            return scores
+//          })
+//      }
+//      scoresList = scoresList
+//        .sort((s1, s2) => s2[s1.length - 1] - s1[s1.length - 1])
+//        .slice(0, selectedNum)
+//
+//      let sum = 0
+//      const indicator = scoresList.map(scores => {
+//        for (let i=0; i<scoresList[0].length - 1; i++) {
+//          sum += scores[i]
+//        }
+//      })
+//      if (sum > max) {
+//        finalRank = rank
+//        max = sum
+//      }
+//
+//      const l = [[rank, sum]]
+//      this.logSheet.getRange(rank + 1, l[0].length * n + 1, 1, l[0].length).setValues(l)
+//    }
+//
+//    this.logSheet.getRange(rankMax + 2, 2 * n + 1).setValue(finalRank)
+//    console.log('_calcRank:rank', finalRank)    
+//
+//    return finalRank
+//  }
+//  
+//  _getInitList(n, rank) {
+//    return this._getScoresList(n).map((scores, i) => {
+//      if (scores.length === 0) {
+//        return 0
+//      }
+//      scores.sort((a, b) => b - a)
+//      return scores[Math.min(rank, scores.length - 1)]
+//    })
+//  }
   
   _fetchCategory() {
     for (let n=0; n<scoresSize; n++) {
