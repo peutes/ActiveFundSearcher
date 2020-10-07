@@ -123,23 +123,18 @@ class MinkabuFundsScoreCalculator {
           return
         }
 
-        // 問題だった8月のシャープレシオにこのフィルタを通した比較分布を見て決定。
-        // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
-        // 全体利益を優先し、あい・パワーの存在は犠牲にする。
-        const exp = 4 // 5は結果が変わらないため撤回。できるだけ影響の少ない4でいく。4か3で十分だと思うが、フィルタが足りないと感じたら2.5にする。 2は大きすぎる。
-        const filter = fund.risks[i] === 0 ? 0 : Math.pow(Math.pow(fund.risks[i], exp) / (Math.pow(fund.risks[i], exp) + Math.abs(fund.sharps[i])), exp) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
-        
-        const w = 0.3  // シャープレシオの副作用。リターンとリスクがあまりにも小さすぎるのを除去。公社債投信をランク外へ排除。
-        const filter2 = Math.sqrt(
-          Math.abs(r) * fund.risks[i] / ((Math.abs(r) + w) * (fund.risks[i] + w))
-        ) // グラフの形状的にフィルタとしてlogより√が適任
-        
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        fund.scores[0][i] = fund.sharps[i] * filter
-        fund.scores[1][i] = fund.sharps[i] * filter2
-        fund.scores[2][i] = fund.scores[0][i]
+        fund.policy[0][i] = fund.sharps[i] * this._calcFilter(fund, i, 3) // 2は強すぎ
+        fund.policy[1][i] = fund.sharps[i] * this._calcFilter(fund, i, 10) // 比較用
+        fund.policy[2][i] = fund.policy[0][i]
       })
     })
+  }
+
+  // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
+  _calcFilter(fund, i, exp) {
+    const f = Math.max(Math.pow(fund.risks[i], exp), Math.abs(fund.returns[i]))
+    return fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
   }
   
   _calcMinusScores(fund, i) {
@@ -148,7 +143,7 @@ class MinkabuFundsScoreCalculator {
   
   _calcScores() {
     console.log('_calcScores')
-
+    
     // マイナスの時の正規分布作成用データ
     let rrScoresList = []
     this._funds.forEach(fund => rrScoresList.push(
@@ -159,7 +154,9 @@ class MinkabuFundsScoreCalculator {
 
     for (let n=0; n<scoresSize; n++) {
       console.log("n", n)
-
+      
+      this._funds.forEach(f => f.scores[n] = f.policy[n])
+      
       // 各期間ごとのスコアのバランスを整えるために標準化してZスコアを使う
       const [aveList, srdList] = this._analysis(this._getScoresList(n))
       
@@ -361,7 +358,7 @@ class MinkabuFundsScoreCalculator {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
       fund.returns.forEach((r, i) => {
-        row.push('', r, fund.risks[i], fund.sharps[i])
+        row.push('', r, fund.risks[i], fund.sharps[i], fund.policy[0][i])
       })
       data.push(row)
     })

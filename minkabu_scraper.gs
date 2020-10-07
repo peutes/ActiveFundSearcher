@@ -13,6 +13,10 @@ class Fund {
     this.risks = new Array(minkabuTermSize).fill(null)
     this.sharps = new Array(minkabuTermSize).fill(null)
 
+    this.policy = new Array(scoresSize)
+    for (let i=0; i<scoresSize; i++) {
+      this.policy[i] = new Array(minkabuTermSize).fill(null)
+    }
     this.scores = new Array(scoresSize)
     for (let i=0; i<scoresSize; i++) {
       this.scores[i] = new Array(minkabuTermSize).fill(null)
