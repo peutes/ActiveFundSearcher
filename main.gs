@@ -64,3 +64,4 @@ function scrapingMinkabuFunds11() {
 function calcMinkabuFundsScore() {
   (new MinkabuFundsScoreCalculator).calc()
 }
+

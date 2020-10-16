@@ -7,6 +7,8 @@ class Fund {
     this.category = null
     this.isRakuten = null
     this.rate = null
+    this.assets = null
+    
     this.name = null
     this.ignore = false
     this.returns = new Array(minkabuTermSize).fill(null)
@@ -95,7 +97,7 @@ class MinkabuRankingScraper {
         this._funds.set(pass, new Fund(link, false))
         i++
       })
-      
+            
       if (p%20 === 0) {
         console.log(p, this._funds.size, i)
       }
@@ -104,7 +106,7 @@ class MinkabuRankingScraper {
   }
   
   _getIdecoFunds() {
-    const ids = ['48315184']
+    const ids = ['48315184', '49312176']
     ids.forEach(id => {
       const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
       this._funds.set('/fund/' + id, new Fund(link, false))
@@ -172,6 +174,14 @@ class MinkabuFundsScraper {
       }
       fund.date = Parser.data(html).from('<span class="fsm">（').to('）</span>').build()
     
+      const rangeInfoList = Parser.data(html).from('<div class="range_info">').to("</div>").iterate()
+      const amountList = ['兆', '億', '万'].map(s => {
+        const regexp = new RegExp('([0-9]*)' + s)
+        const res = rangeInfoList[2].match(regexp)
+        return res === null ? 0 : res[1]
+      })
+      fund.assets = 100000000 * Number(amountList[0]) + 10000 * Number(amountList[1]) + Number(amountList[2])
+
       i++
       if (i%50 === 0) {
         console.log(i)
@@ -186,7 +196,7 @@ class MinkabuFundsScraper {
 
     const data = []
     this._funds.forEach(fund => {
-      const row = [fund.date, fund.link, fund.isIdeco, fund.name, '']
+      const row = [fund.date, fund.link, fund.isIdeco, fund.assets, fund.name, '']
       fund.returns.forEach((r, i) => {
         row.push(r, fund.risks[i], fund.sharps[i], '')
       })
