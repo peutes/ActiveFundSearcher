@@ -1,8 +1,8 @@
 function myFunction() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('G:G').activate();
-  spreadsheet.setCurrentCell(spreadsheet.getRange('G1'));
-  spreadsheet.getActiveSheet().sort(7, false);
+  spreadsheet.getRange('H:H').activate();
+  spreadsheet.setCurrentCell(spreadsheet.getRange('H1'));
+  spreadsheet.getActiveSheet().sort(8, false);
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);
@@ -32,9 +32,9 @@ function myFunction() {
 
 function myFunction1() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('N:N').activate();
-  spreadsheet.setCurrentCell(spreadsheet.getRange('N1'));
-  spreadsheet.getActiveSheet().sort(14, false);
+  spreadsheet.getRange('O:O').activate();
+  spreadsheet.setCurrentCell(spreadsheet.getRange('O1'));
+  spreadsheet.getActiveSheet().sort(15, false);
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);
@@ -64,9 +64,9 @@ function myFunction1() {
 
 function myFunction2() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('G:G').activate();
-  spreadsheet.setCurrentCell(spreadsheet.getRange('G1'));
-  spreadsheet.getActiveSheet().sort(7, false);
+  spreadsheet.getRange('H:H').activate();
+  spreadsheet.setCurrentCell(spreadsheet.getRange('H1'));
+  spreadsheet.getActiveSheet().sort(8, false);
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);
@@ -96,9 +96,9 @@ function myFunction2() {
 
 function myFunction3() {
   var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getRange('N:N').activate();
-  spreadsheet.setCurrentCell(spreadsheet.getRange('N1'));
-  spreadsheet.getActiveSheet().sort(14, false);
+  spreadsheet.getRange('O:O').activate();
+  spreadsheet.setCurrentCell(spreadsheet.getRange('O1'));
+  spreadsheet.getActiveSheet().sort(15, false);
   spreadsheet.getRange('B:B').activate();
   spreadsheet.setCurrentCell(spreadsheet.getRange('B1'));
   spreadsheet.getActiveSheet().sort(2, true);

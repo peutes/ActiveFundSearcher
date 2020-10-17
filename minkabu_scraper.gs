@@ -63,6 +63,13 @@ class MinkabuRankingScraper {
 
   scraping() {
     this._fetchFunds()
+
+    const ids = ['48315184', '49312176', '01311039'] // 臨時対応
+    ids.forEach(id => {
+      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
+      this._funds.set('/fund/' + id, new Fund(link, false))
+    })
+
     this._getIdecoFunds()
     
     const data = []
@@ -105,13 +112,7 @@ class MinkabuRankingScraper {
     console.log('_fetchFunds', this._funds.size, i)
   }
   
-  _getIdecoFunds() {
-    const ids = ['48315184', '49312176']
-    ids.forEach(id => {
-      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
-      this._funds.set('/fund/' + id, new Fund(link, false))
-    })
-    
+  _getIdecoFunds() {    
     // SBI Select版
     const idecoIds = [
       '2931316B', '03317172', '9C31116A', '0131C18A', '04316186', '89311164', '8931217C', '03316183', '89313135', '96312073', 
@@ -158,6 +159,7 @@ class MinkabuFundsScraper {
     
     let i = 0
     this._funds.forEach(fund => {
+//      console.log(fund.link)
       const html = UrlFetchApp.fetch(fund.link).getContentText()
       const table = Parser.data(html).from('<table class="md_table">').to('</table>').build()
       const spanList = Parser.data(table).from('<span>').to('</span>').iterate()
