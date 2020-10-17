@@ -75,7 +75,7 @@ class MinkabuFundsScoreCalculator {
 //        const rookieFilter = (i === 1 && fund.returns[2] === null ? (1 + 1/6) : 1)
 
         // 純資産信頼性フィルタ
-        const assetsFilter = Math.log10(Math.log10(fund.assets / 10)) * 1.5 // 100万単位はどう考えてもやりすぎ。 10万単位にする。 1万単位は10億以下が除去されにくい。
+        const assetsFilter = Math.log(Math.log(Math.log(fund.assets / 10))) * 1.17 // 100は強すぎなのでやめた。 10で安定
         
         // TODO NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
