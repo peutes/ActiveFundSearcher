@@ -14,7 +14,7 @@ class MinkabuFundsScoreCalculator {
     this._otherIgnoreList = [
       "DIAM新興市場日本株ファンド", "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型", "MHAM USインカムオープン毎月決算コース(為替ヘッジなし)(ドルBOX)", "ゴールドマン・サックス・世界債券オープンCコース(毎月分配型、限定為替ヘッジ)",
       "ゴールドマン・サックス・世界債券オープンAコース(限定為替ヘッジ)", "GS日本フォーカス・グロース毎月決算コース", "グローバル・フィンテック株式ファンド(年2回決算型)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))",
-      "グローバル・ロボティクス株式ファンド(年2回決算型)"
+      "グローバル・ロボティクス株式ファンド(年2回決算型)", "SBI中小型成長株ファンドジェイネクスト(jnext)", "JPMチャイナ・アクティブ・オープン",
     ]
           
     this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
@@ -72,10 +72,13 @@ class MinkabuFundsScoreCalculator {
         }
     
 //        // ルーキー枠制度 3年未満で1年のデータしか存在しないが優秀なファンドを救済する
-//        const rookieFilter = (i === 1 && fund.returns[2] === null ? (1 + 1/6) : 1)
+//        const rookieFilter = (i === 1 && fund.returns[2] === null ? 1.1 : 1)
 
         // 純資産信頼性フィルタ
-        const assetsFilter = Math.log(Math.log(Math.log(fund.assets / 10))) * 1.17 // 100は強すぎなのでやめた。 10で安定
+//        const assetsFilter = Math.log(Math.log(Math.log(fund.assets / 10))) * 1.17 // 100は強すぎなのでやめた。 10で安定
+        const assetsPow = Math.pow(fund.assets, 3)
+        const assetsFilter = assetsPow / (assetsPow + Math.pow(50000, 3))
+//        const assetsFilter = 1 / Math.sqrt(1 + Math.pow(50000 / fund.assets, 2))
         
         // TODO NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
