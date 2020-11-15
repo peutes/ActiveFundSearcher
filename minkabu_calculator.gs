@@ -16,6 +16,51 @@ class MinkabuFundsScoreCalculator {
       "ゴールドマン・サックス・世界債券オープンAコース(限定為替ヘッジ)", "GS日本フォーカス・グロース毎月決算コース", "グローバル・フィンテック株式ファンド(年2回決算型)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))",
       "グローバル・ロボティクス株式ファンド(年2回決算型)", "SBI中小型成長株ファンドジェイネクスト(jnext)", "JPMチャイナ・アクティブ・オープン",
     ]
+    this._redemptionDeadlineIgnoreList = [
+      "グローバル・ベスト・ファンド", // 信託期間	2021/09/10
+      
+      // 1年前に延長されるファンドがあるので、確認する
+      "日本新興株オープン", // 信託期間	2021/12/20
+      "明治安田米国中小型成長株式ファンド", // 	信託期間	2022/01/31
+      "UBS米国成長株式リスク・コントロール・ファンド", // 信託期間	2023/02/14
+      "新光小型株オープン(波物語)", // 信託期間	2024/02/01
+      "情報エレクトロニクスファンド", // 信託期間	2024/02/21
+      "新成長株ファンド(グローイング・カバーズ)", // 信託期間	2024/04/25
+      "Jオープン(店頭・小型株)", // 信託期間	2024/06/28
+      "日本・小型株・ファンド",  // 信託期間	2024/12/10
+      "米国バイオ&テクノロジー株オープン", // 信託期間	2025/03/07
+      "グローバル・スマート・イノベーション・オープン(年1回決算型)(iシフト)", // 信託期間	2025/12/05
+      "グローバル・スマート・イノベーション・オープン(年1回決算型)為替ヘッジあり(iシフト(ヘッジあり))", // 信託期間	2025/12/05
+      "新光ジャパンオープンⅡ", // 信託期間	2025/12/15
+
+      // 2025年12月
+      
+      // "企業価値成長小型株ファンド(眼力)", // 信託期間	2026/02/20
+      // "三菱UFJ NASDAQオープンAコース", // 信託期間	2026/07/31
+      // "三菱UFJ NASDAQオープンBコース", // 信託期間	2026/07/31
+      // "グローバル・ハイクオリティ成長株式ファンド(限定為替ヘッジ)(未来の世界)", // 信託期間	2026/09/04
+      // "グローバル・ハイクオリティ成長株式ファンド(為替ヘッジなし)(未来の世界)", // 信託期間	2026/09/04
+      // "グローバルAIファンド", // 信託期間	2026/09/25
+      // "グローバルAIファンド(為替ヘッジあり)", // 信託期間	2026/09/25
+      // "ニッセイAI関連株式ファンド(為替ヘッジなし)(AI革命(為替ヘッジなし))", 信託期間	2026/10/26
+      // "ニッセイAI関連株式ファンド(為替ヘッジあり)(AI革命(為替ヘッジあり))", 信託期間	2026/10/26
+      // "グローバル・フィンテック株式ファンド", // 信託期間	2026/12/07
+      // "グローバル・フィンテック株式ファンド(為替ヘッジあり)",// 信託期間	2026/12/07
+      
+      // "モルガン・スタンレー グローバル・プレミアム株式オープン(為替ヘッジあり)", // 信託期間	2027/02/23
+      // "ゴールド・ファンド(為替ヘッジなし)", // 信託期間	2027/07/08
+      // "世界eコマース関連株式オープン(みらい生活)", // 信託期間	2027/07/20
+      // "スパークス・新・国際優良日本株ファンド(厳選投資)", // 信託期間	2028/03/27
+      // "三菱UFJグローバル・ボンド・オープン(年1回決算型)(花こよみ年1)" // 信託期間	2029/04/20
+      // "東京海上・ジャパン・オーナーズ株式オープン", // 信託期間	2030/01/18
+      // "スパークス・ジャパン・スモール・キャップ・ファンド(ライジング・サン)", // 信託期間	2030/10/15
+      // "JPMアジア・成長株・ファンド", 信託期間	2031/07/18
+      // "サイバーセキュリティ株式オープン(為替ヘッジあり)", // 信託期間	2032/06/04
+      // "サイバーセキュリティ株式オープン(為替ヘッジなし)", // 信託期間	2032/06/04
+      // "アライアンス・バーンスタイン・米国成長株投信Bコース(為替ヘッジなし)", 信託期間	2034/06/15
+      // "アライアンス・バーンスタイン・米国成長株投信Aコース(為替ヘッジあり)", 信託期間	2034/06/15
+      
+    ]
           
     this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
     this.logSheet.clear()
@@ -42,7 +87,7 @@ class MinkabuFundsScoreCalculator {
         fund.date = value[0]
         fund.assets = value[3]
         fund.name = value[4]
-        fund.ignore = this._noRakutenIgnoreList.some(i => i === fund.name) || this._otherIgnoreList.some(i => i === fund.name)
+        fund.ignore = this._noRakutenIgnoreList.some(i => i === fund.name) || this._otherIgnoreList.some(i => i === fund.name) || this._redemptionDeadlineIgnoreList.some(i => i === fund.name)
       
         const n = 6
         for (let i=0; i<minkabuTermSize; i++) {
@@ -75,16 +120,16 @@ class MinkabuFundsScoreCalculator {
 //        const rookieFilter = (i === 1 && fund.returns[2] === null ? 1.1 : 1)
 
         // 純資産信頼性フィルタ
-//        const assetsFilter = Math.log(Math.log(Math.log(fund.assets / 10))) * 1.17 // 100は強すぎなのでやめた。 10で安定
         const assetsPow = Math.pow(fund.assets, 3)
         const assetsFilter = assetsPow / (assetsPow + Math.pow(50000, 3))
-//        const assetsFilter = 1 / Math.sqrt(1 + Math.pow(50000 / fund.assets, 2))
-        
-        // TODO NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
+        // TODO: スクリーニングで早めにやったほうがいいリスト        
+        // ・償還期間を見るべき。5年以内に償還するファンドは避けるべき。1年ではなく5年。
+        // ・信託財産留保額を見るべき        
+        // ・NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        fund.policy[0][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 3) * fund.sharps[i] // 2は強すぎ
+        fund.policy[0][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 2) * fund.sharps[i]
         fund.policy[1][i] = this._calcLowRiskFilter(fund, i, 10) * fund.sharps[i]
 //        fund.policy[1][i] = fund.sharps[i] * this._calcFilter(fund, i, 10) // 比較用
         fund.policy[2][i] = fund.policy[0][i]
@@ -357,7 +402,7 @@ class MinkabuFundsScoreCalculator {
 
   _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
     const white = '#ffffff' // needs RGB color
-    let colors = ['cyan', 'lime', 'yellow', 'orange', '#ea9999', '#ea9999', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3', '#fff2cc', '#fff2cc', '#f4cccc', '#f4cccc', 'silver']
+    let colors = ['cyan', 'lime', 'yellow', 'orange', '#ea9999', '#ea9999', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3']
       .concat(new Array(12).fill('white'))
     const colorNum = 5
     
