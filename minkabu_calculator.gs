@@ -9,58 +9,17 @@ class MinkabuFundsScoreCalculator {
       "UBS中国株式ファンド", "野村米国ブランド株投資(米ドルコース)毎月分配型", "UBS次世代テクノロジー・ファンド", "野村米国ブランド株投資(米ドルコース)年2回決算型", "新光日本小型株ファンド(風物語)", "東京海上Roggeニッポン海外債券ファンド(為替ヘッジあり)", "UBS中国A株ファンド(年1回決算型)(桃源郷)", "USテクノロジー・イノベーターズ・ファンド", "野村米国ブランド株投資(アジア通貨コース)毎月分配型",
       "インデックスファンド海外債券ヘッジあり(DC専用)", "USテクノロジー・イノベーターズ・ファンド(為替ヘッジあり)", "三菱UFJ先進国高金利債券ファンド(年1回決算型)(グローバル・トップ年1)", "US成長株オープン(円ヘッジありコース)", "ダイワ・セレクト日本", "野村SNS関連株投資Aコース", "野村米国ブランド株投資(アジア通貨コース)年2回決算型", "JPMグレーター・チャイナ・オープン", "US成長株オープン(円ヘッジなしコース)", 
       "野村SNS関連株投資Bコース", "ダイワ新興企業株ファンド", "結い2101", "DCインデックスバランス(株式20)", "生活基盤関連株式ファンド(ゆうゆう街道)", "厳選ジャパン", "USストラテジック・インカム・アルファ毎月決算型", "グローバル全生物ゲノム株式ファンド(1年決算型)", "JPM中小型株オープン", "リスク抑制世界8資産バランスファンド(しあわせの一歩)", "ワールド・ウォーター・ファンドAコース",
-      "京都・滋賀インデックスファンド(京(みやこ)ファンド)", "FANG+インデックス・オープン", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "三井住友・DC外国債券インデックスファンド",
+      "マイストーリー・株25", "三井住友・中国A株・香港株オープン", "ジャパン・アクティブ・グロース(資産成長型)", "ダイワ/バリュー・パートナーズ・チャイナ・イノベーター・ファンド", "年金積立アセット・ナビゲーション・ファンド(株式20)(DCAナビ20)", "ダイワ/ミレーアセット・グローバル・グレートコンシューマー株式ファンド(為替ヘッジあり)", "日本株リーダーズファンド", "DCニッセイワールドセレクトファンド(債券重視型)",
+      "京都・滋賀インデックスファンド(京(みやこ)ファンド)", "FANG+インデックス・オープン", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "三井住友・DC外国債券インデックスファンド", "ジャパン・アクティブ・グロース(分配型)", "ハッピーライフファンド・株25", "浪花おふくろファンド(おふくろファンド)", "フィデリティ世界医療機器関連株ファンド(為替ヘッジなし)", "JPM日本中小型株ファンド",
+      "フィデリティ世界医療機器関連株ファンド(為替ヘッジあり)", "先進国投資適格債券ファンド(為替ヘッジあり)(マイワルツ)", "野村アクア投資Aコース", "野村グローバルSRI100(野村世界社会的責任投資)", "三菱UFJライフプラン25(ゆとりずむ25)", "ダイワ債券コア戦略ファンド(為替ヘッジあり)", "米国製造業株式ファンド(USルネサンス)", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
+      "インデックスファンド海外株式ヘッジあり(DC専用)", "アムンディ・グラン・チャイナ・ファンド", "野村エマージング債券投信(金コース)毎月分配型", "三菱UFJライフプラン50(ゆとりずむ50)", "ダイワ成長株オープン", "野村エマージング債券投信(金コース)年2回決算型", "いちよし公開ベンチャー・ファンド", "ダイワ米国国債7-10年ラダー型ファンド(部分為替ヘッジあり)-USトライアングル-", "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジあり)",
+      "SBI中小型成長株ファンドジェイネクスト(jnext)" // スポットのみ      
     ]
     this._otherIgnoreList = [
       "DIAM新興市場日本株ファンド", "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型", "MHAM USインカムオープン毎月決算コース(為替ヘッジなし)(ドルBOX)", "ゴールドマン・サックス・世界債券オープンCコース(毎月分配型、限定為替ヘッジ)",
-      "ゴールドマン・サックス・世界債券オープンAコース(限定為替ヘッジ)", "GS日本フォーカス・グロース毎月決算コース", "グローバル・フィンテック株式ファンド(年2回決算型)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))",
-      "グローバル・ロボティクス株式ファンド(年2回決算型)", "SBI中小型成長株ファンドジェイネクスト(jnext)", "JPMチャイナ・アクティブ・オープン",
+      "GS日本フォーカス・グロース毎月決算コース", "グローバル・フィンテック株式ファンド(年2回決算型)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))", "グローバル・ロボティクス株式ファンド(年2回決算型)",
     ]
-    this._redemptionDeadlineIgnoreList = [
-      "グローバル・ベスト・ファンド", // 信託期間	2021/09/10
-      
-      // 1年前に延長されるファンドがあるので、確認する
-      "日本新興株オープン", // 信託期間	2021/12/20
-      "明治安田米国中小型成長株式ファンド", // 	信託期間	2022/01/31
-      "UBS米国成長株式リスク・コントロール・ファンド", // 信託期間	2023/02/14
-      "新光小型株オープン(波物語)", // 信託期間	2024/02/01
-      "情報エレクトロニクスファンド", // 信託期間	2024/02/21
-      "新成長株ファンド(グローイング・カバーズ)", // 信託期間	2024/04/25
-      "Jオープン(店頭・小型株)", // 信託期間	2024/06/28
-      "日本・小型株・ファンド",  // 信託期間	2024/12/10
-      "米国バイオ&テクノロジー株オープン", // 信託期間	2025/03/07
-      "グローバル・スマート・イノベーション・オープン(年1回決算型)(iシフト)", // 信託期間	2025/12/05
-      "グローバル・スマート・イノベーション・オープン(年1回決算型)為替ヘッジあり(iシフト(ヘッジあり))", // 信託期間	2025/12/05
-      "新光ジャパンオープンⅡ", // 信託期間	2025/12/15
-
-      // 2025年12月
-      
-      // "企業価値成長小型株ファンド(眼力)", // 信託期間	2026/02/20
-      // "三菱UFJ NASDAQオープンAコース", // 信託期間	2026/07/31
-      // "三菱UFJ NASDAQオープンBコース", // 信託期間	2026/07/31
-      // "グローバル・ハイクオリティ成長株式ファンド(限定為替ヘッジ)(未来の世界)", // 信託期間	2026/09/04
-      // "グローバル・ハイクオリティ成長株式ファンド(為替ヘッジなし)(未来の世界)", // 信託期間	2026/09/04
-      // "グローバルAIファンド", // 信託期間	2026/09/25
-      // "グローバルAIファンド(為替ヘッジあり)", // 信託期間	2026/09/25
-      // "ニッセイAI関連株式ファンド(為替ヘッジなし)(AI革命(為替ヘッジなし))", 信託期間	2026/10/26
-      // "ニッセイAI関連株式ファンド(為替ヘッジあり)(AI革命(為替ヘッジあり))", 信託期間	2026/10/26
-      // "グローバル・フィンテック株式ファンド", // 信託期間	2026/12/07
-      // "グローバル・フィンテック株式ファンド(為替ヘッジあり)",// 信託期間	2026/12/07
-      
-      // "モルガン・スタンレー グローバル・プレミアム株式オープン(為替ヘッジあり)", // 信託期間	2027/02/23
-      // "ゴールド・ファンド(為替ヘッジなし)", // 信託期間	2027/07/08
-      // "世界eコマース関連株式オープン(みらい生活)", // 信託期間	2027/07/20
-      // "スパークス・新・国際優良日本株ファンド(厳選投資)", // 信託期間	2028/03/27
-      // "三菱UFJグローバル・ボンド・オープン(年1回決算型)(花こよみ年1)" // 信託期間	2029/04/20
-      // "東京海上・ジャパン・オーナーズ株式オープン", // 信託期間	2030/01/18
-      // "スパークス・ジャパン・スモール・キャップ・ファンド(ライジング・サン)", // 信託期間	2030/10/15
-      // "JPMアジア・成長株・ファンド", 信託期間	2031/07/18
-      // "サイバーセキュリティ株式オープン(為替ヘッジあり)", // 信託期間	2032/06/04
-      // "サイバーセキュリティ株式オープン(為替ヘッジなし)", // 信託期間	2032/06/04
-      // "アライアンス・バーンスタイン・米国成長株投信Bコース(為替ヘッジなし)", 信託期間	2034/06/15
-      // "アライアンス・バーンスタイン・米国成長株投信Aコース(為替ヘッジあり)", 信託期間	2034/06/15
-      
-    ]
+    this._redemptionDeadlineIgnoreList = []
           
     this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
     this.logSheet.clear()
@@ -68,7 +27,7 @@ class MinkabuFundsScoreCalculator {
       
   calc() {
     this._fetchFunds()
-    this._decidePolicy()
+    this._decideScreeningPolicy()
     this._calcScores()
     this._fetchCategory()
     this._output()
@@ -109,7 +68,8 @@ class MinkabuFundsScoreCalculator {
     })
   }
   
-  _decidePolicy() {
+  _decideScreeningPolicy() {
+    console.log('_decideScreeningPolicy')
     this._funds.forEach(fund => {
       fund.returns.forEach((r, i) => {
         if (r === null || fund.risks[i] === null || fund.sharps[i] === null) {
@@ -125,13 +85,12 @@ class MinkabuFundsScoreCalculator {
 
         // TODO: スクリーニングで早めにやったほうがいいリスト        
         // ・償還期間を見るべき。5年以内に償還するファンドは避けるべき。1年ではなく5年。
-        // ・信託財産留保額を見るべき        
+        // ・信託財産留保額を見るべき
         // ・NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        fund.policy[0][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 2) * fund.sharps[i]
-        fund.policy[1][i] = this._calcLowRiskFilter(fund, i, 10) * fund.sharps[i]
-//        fund.policy[1][i] = fund.sharps[i] * this._calcFilter(fund, i, 10) // 比較用
+        fund.policy[0][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 150) * fund.sharps[i]
+        fund.policy[1][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 2) * fund.sharps[i] // 比較用
         fund.policy[2][i] = fund.policy[0][i]
       })    
     })
@@ -139,8 +98,9 @@ class MinkabuFundsScoreCalculator {
 
   // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
   _calcLowRiskFilter(fund, i, exp) {
-    const f = Math.max(Math.pow(fund.risks[i], exp), Math.abs(fund.returns[i]))
-    return fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
+    const f = Math.max(Math.pow(fund.risks[i], exp), fund.risks[i], Math.abs(fund.returns[i]))
+    const res = fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
+    return Math.max(res, 1 / 5)
   }
   
   _calcMinusScores(fund, i) {
@@ -158,7 +118,7 @@ class MinkabuFundsScoreCalculator {
     rrScoresList = this._transposeAndFilter(rrScoresList)
     const [_rrAveList, rrSrdList] = this._analysis(rrScoresList)
 
-    for (let n=0; n<scoresSize; n++) {
+    for (let n=0; n<calculatedNum; n++) {
       console.log("n", n)
       
       this._funds.forEach(f => f.scores[n] = f.policy[n])
@@ -329,7 +289,7 @@ class MinkabuFundsScoreCalculator {
 //  }
   
   _fetchCategory() {
-    for (let n=0; n<scoresSize; n++) {
+    for (let n=0; n<calculatedNum; n++) {
       if (n > 1) {
         return
       }
@@ -357,7 +317,7 @@ class MinkabuFundsScoreCalculator {
     const data = []
     this._funds.forEach(fund => {
       const row = [fund.link, fund.ignore, fund.isRakuten, fund.category, fund.assets, fund.name, fund.isIdeco]
-      for (let i=0; i<scoresSize; i++) {
+      for (let i=0; i<calculatedNum; i++) {
         row.push(fund.totalScores[i], ...(fund.scores[i]), '')
       }
       fund.returns.forEach((r, i) => {
@@ -371,14 +331,14 @@ class MinkabuFundsScoreCalculator {
     sheet.autoResizeColumn(categoryCol)
     sheet.autoResizeColumn(nameCol)
     
-    for (let i=0; i<scoresSize; i++) {
+    for (let i=0; i<calculatedNum; i++) {
       sheet.getRange(1, totalScoreCol + i * (minkabuTermSize + 2), lastRow).setFontWeight("bold")
     }
 
     let n = 1
     this._funds.forEach(fund => {
       if (fund.ignore) {
-        sheet.getRange(n, 1, 1, isIdecoCol + (minkabuTermSize + 2) * (scoresSize - 1)).setBackground('gray')
+        sheet.getRange(n, 1, 1, isIdecoCol + (minkabuTermSize + 2) * (calculatedNum - 1)).setBackground('gray')
       }
       if (fund.isIdeco) {
         sheet.getRange(n, isIdecoCol).setBackground('yellow')
@@ -392,7 +352,7 @@ class MinkabuFundsScoreCalculator {
     
     sheet.insertRowBefore(1)
     const topRow = ['リンク', '無視', '楽天', 'カテゴリ', '純資産額', '投資信託名称',  'iDeCo']
-    for (let i=0; i<scoresSize; i++) {
+    for (let i=0; i<calculatedNum; i++) {
       topRow.concat('トータルスコア', '6ヶ月', '1年', '3年', '5年', '10年', '')
     }
     const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
@@ -410,9 +370,9 @@ class MinkabuFundsScoreCalculator {
     const nameRange = sheet.getRange(1, nameCol, lastRow)
     this._setHighRankColor(nameRange)
 
-    for (let i=totalScoreCol; i < totalScoreCol + scoresSize * (2 + minkabuTermSize) - 1; i++) {
+    for (let i=totalScoreCol; i < totalScoreCol + calculatedNum * (2 + minkabuTermSize) - 1; i++) {
       let c = false
-      for (let j=1; j<scoresSize; j++) {
+      for (let j=1; j<calculatedNum; j++) {
         if (i === totalScoreCol + j * (minkabuTermSize + 2) - 1) {
           c = true
         }
