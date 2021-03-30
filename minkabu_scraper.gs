@@ -15,15 +15,15 @@ class Fund {
     this.risks = new Array(minkabuTermSize).fill(null)
     this.sharps = new Array(minkabuTermSize).fill(null)
 
-    this.policy = new Array(scoresSize)
-    for (let i=0; i<scoresSize; i++) {
+    this.policy = new Array(calculatedNum)
+    for (let i=0; i<calculatedNum; i++) {
       this.policy[i] = new Array(minkabuTermSize).fill(null)
     }
-    this.scores = new Array(scoresSize)
-    for (let i=0; i<scoresSize; i++) {
+    this.scores = new Array(calculatedNum)
+    for (let i=0; i<calculatedNum; i++) {
       this.scores[i] = new Array(minkabuTermSize).fill(null)
     }
-    this.totalScores = new Array(scoresSize).fill(0)
+    this.totalScores = new Array(calculatedNum).fill(0)
   }
 }
 
@@ -63,13 +63,6 @@ class MinkabuRankingScraper {
 
   scraping() {
     this._fetchFunds()
-
-    const ids = ['48315184', '49312176', '01311039'] // 臨時対応
-    ids.forEach(id => {
-      const link = 'https://itf.minkabu.jp/fund/' + id + '/risk_cont'
-      this._funds.set('/fund/' + id, new Fund(link, false))
-    })
-
     this._getIdecoFunds()
     
     const data = []

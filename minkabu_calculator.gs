@@ -13,11 +13,13 @@ class MinkabuFundsScoreCalculator {
       "京都・滋賀インデックスファンド(京(みやこ)ファンド)", "FANG+インデックス・オープン", "グローバル・プロスペクティブ・ファンド(イノベーティブ・フューチャー)", "三井住友・DC外国債券インデックスファンド", "ジャパン・アクティブ・グロース(分配型)", "ハッピーライフファンド・株25", "浪花おふくろファンド(おふくろファンド)", "フィデリティ世界医療機器関連株ファンド(為替ヘッジなし)", "JPM日本中小型株ファンド",
       "フィデリティ世界医療機器関連株ファンド(為替ヘッジあり)", "先進国投資適格債券ファンド(為替ヘッジあり)(マイワルツ)", "野村アクア投資Aコース", "野村グローバルSRI100(野村世界社会的責任投資)", "三菱UFJライフプラン25(ゆとりずむ25)", "ダイワ債券コア戦略ファンド(為替ヘッジあり)", "米国製造業株式ファンド(USルネサンス)", "グローバル・モビリティ・サービス株式ファンド(1年決算型)(グローバルMaaS(1年決算型))",
       "インデックスファンド海外株式ヘッジあり(DC専用)", "アムンディ・グラン・チャイナ・ファンド", "野村エマージング債券投信(金コース)毎月分配型", "三菱UFJライフプラン50(ゆとりずむ50)", "ダイワ成長株オープン", "野村エマージング債券投信(金コース)年2回決算型", "いちよし公開ベンチャー・ファンド", "ダイワ米国国債7-10年ラダー型ファンド(部分為替ヘッジあり)-USトライアングル-", "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジあり)",
-      "SBI中小型成長株ファンドジェイネクスト(jnext)" // スポットのみ      
+      "SBI中小型成長株ファンドジェイネクスト(jnext)" // スポットのみ
+      // TODO 買える証券別で分ける
     ]
     this._otherIgnoreList = [
       "DIAM新興市場日本株ファンド", "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)", "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型", "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型", "MHAM USインカムオープン毎月決算コース(為替ヘッジなし)(ドルBOX)", "ゴールドマン・サックス・世界債券オープンCコース(毎月分配型、限定為替ヘッジ)",
       "GS日本フォーカス・グロース毎月決算コース", "グローバル・フィンテック株式ファンド(年2回決算型)", "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)", "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)", "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))", "グローバル・ロボティクス株式ファンド(年2回決算型)",
+      "あい・パワーファンド(iパワー)", // 業務停止命令で換金もできなくなり危険すぎるため。あと積立購入ができない。
     ]
     this._redemptionDeadlineIgnoreList = []
           
@@ -79,9 +81,9 @@ class MinkabuFundsScoreCalculator {
 //        // ルーキー枠制度 3年未満で1年のデータしか存在しないが優秀なファンドを救済する
 //        const rookieFilter = (i === 1 && fund.returns[2] === null ? 1.1 : 1)
 
-        // 純資産信頼性フィルタ
-        const assetsPow = Math.pow(fund.assets, 3)
-        const assetsFilter = assetsPow / (assetsPow + Math.pow(50000, 3))
+        // 純資産信頼性フィルタ（平均化すると邪魔なので外す）
+        //const assetsPow = Math.pow(fund.assets, 3)
+        //const assetsFilter = assetsPow / (assetsPow + Math.pow(50000, 3))
 
         // TODO: スクリーニングで早めにやったほうがいいリスト        
         // ・償還期間を見るべき。5年以内に償還するファンドは避けるべき。1年ではなく5年。
@@ -89,8 +91,8 @@ class MinkabuFundsScoreCalculator {
         // ・NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
 
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        fund.policy[0][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 150) * fund.sharps[i]
-        fund.policy[1][i] = assetsFilter * this._calcLowRiskFilter(fund, i, 2) * fund.sharps[i] // 比較用
+        fund.policy[0][i] = this._calcLowRiskFilter(fund, i, 100) * fund.sharps[i]
+        fund.policy[1][i] = this._calcLowRiskFilter(fund, i, 2) * fund.sharps[i] // 比較用
         fund.policy[2][i] = fund.policy[0][i]
       })    
     })
@@ -98,9 +100,8 @@ class MinkabuFundsScoreCalculator {
 
   // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
   _calcLowRiskFilter(fund, i, exp) {
-    const f = Math.max(Math.pow(fund.risks[i], exp), fund.risks[i], Math.abs(fund.returns[i]))
-    const res = fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
-    return Math.max(res, 1 / 5)
+    const f = Math.max(Math.pow(fund.risks[i], exp), Math.pow(fund.risks[i], 1/exp), Math.abs(fund.returns[i]))
+    return fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
   }
   
   _calcMinusScores(fund, i) {

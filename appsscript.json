@@ -1,0 +1,36 @@
+{
+  "timeZone": "Asia/Tokyo",
+  "dependencies": {
+    "libraries": [{
+      "userSymbol": "Parser",
+      "libraryId": "1Mc8BthYthXx6CoIz90-JiSzSafVnT6U3t0z_W3hLTAX5ek4w0G_EIrNw",
+      "version": "7"
+    }]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": ["https://www.googleapis.com/auth/spreadsheets.currentonly", "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/script.external_request"],
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "ソートグラフ50 - 1",
+      "functionName": "myFunction2",
+      "defaultShortcut": "Ctrl+Alt+Shift+3"
+    }, {
+      "menuName": "ソートグラフ50 - 2",
+      "functionName": "myFunction3",
+      "defaultShortcut": "Ctrl+Alt+Shift+4"
+    }, {
+      "menuName": "みんかぶスコア計算",
+      "functionName": "calcMinkabuFundsScore",
+      "defaultShortcut": "Ctrl+Alt+Shift+0"
+    }, {
+      "menuName": "myFunction",
+      "functionName": "myFunction",
+      "defaultShortcut": "Ctrl+Alt+Shift+1"
+    }, {
+      "menuName": "myFunction1",
+      "functionName": "myFunction1",
+      "defaultShortcut": "Ctrl+Alt+Shift+2"
+    }]
+  }
+}
