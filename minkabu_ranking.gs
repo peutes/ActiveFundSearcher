@@ -9,6 +9,7 @@ class MinkabuFundsScoreRanking {
     this._names = new Map()
     this._links = new Map()
     this._categories = new Map()
+    this._isIDeCos = new Map()
     this._noIgnores = new Map()
     this._buys = new Map()
 
@@ -29,7 +30,10 @@ class MinkabuFundsScoreRanking {
     this._totalScores310 = new Map()
     this._totalScores510 = new Map()
 
-    this._lightIgnores = ['0131200B', '39312065', '3531299B', '03312968']
+    this._lightIgnores = [
+      '0131200B', '39312065', '3531299B', '03312968',
+      '89312121', '89313121', '89314121', '89315121', '0331A172', '96311073',, // iDeCo
+    ]
     this._scoreKey = 'score'
   }
 
@@ -44,13 +48,13 @@ class MinkabuFundsScoreRanking {
     this._calcTotalScores()
 
     // 単一期間のスコアは独自の評価が多すぎるため外す。最低でも2つ以上の期間を見る必要がありそう。
-    const upperBySingle = 1
-    this._calcBuys(this._scores1, upperBySingle)
-    this._calcBuys(this._scores3, upperBySingle)
-    this._calcBuys(this._scores5, upperBySingle)
-    this._calcBuys(this._scores10, upperBySingle)
+    const upperByFirst = 1
+    this._calcBuys(this._scores1, upperByFirst)
+    this._calcBuys(this._scores3, upperByFirst)
+    this._calcBuys(this._scores5, upperByFirst)
+    this._calcBuys(this._scores10, upperByFirst)
 
-    const upperBySecond = 2 // 3は多すぎた。
+    const upperBySecond = 1 // 3は多すぎた。
     this._calcBuys(this._totalScores13, upperBySecond)
     this._calcBuys(this._totalScores15, upperBySecond)
     this._calcBuys(this._totalScores110, upperBySecond)
@@ -58,14 +62,14 @@ class MinkabuFundsScoreRanking {
     this._calcBuys(this._totalScores310, upperBySecond)
     this._calcBuys(this._totalScores510, upperBySecond)
 
-    const upperByThird = 5
+    const upperByThird = 2
     this._calcBuys(this._totalScores13510, upperByThird)
     this._calcBuys(this._totalScores1310, upperByThird)
     this._calcBuys(this._totalScores1510, upperByThird)
     this._calcBuys(this._totalScores3510, upperByThird)
 
-    // まずは5位までで検証
-    const upperByForth = 5
+    // まずは3位までで検証
+    const upperByForth = 3
     this._calcBuys(this._totalScores135, upperByForth)
 
     this._setBuysByCategory()
@@ -110,10 +114,12 @@ class MinkabuFundsScoreRanking {
       let i=0
       const link = value[i]
       i += 8
-      const category = value[i]
-      i += 26
+      const category = value[i++]
+      const isIdeco = value[i]
+      i += 24
       const noIgnore = value[i++]
       const isRakuten = value[i]
+//      console.log(isIdeco, noIgnore, isRakuten)
 
       const id = this._getIdByLink(link)
       if (id === null) {
@@ -121,7 +127,8 @@ class MinkabuFundsScoreRanking {
       }
 
       this._categories.set(id, category)
-      this._noIgnores.set(id, noIgnore && isRakuten)
+      this._noIgnores.set(id, (noIgnore && isRakuten) || isIdeco)
+      this._isIDeCos.set(id, isIdeco)
     })
   }
 
@@ -260,6 +267,7 @@ class MinkabuFundsScoreRanking {
           name,
           this._buys.get(id),
           this._buys.get(id) > 0 ? '◯' : '',
+          this._isIDeCos.get(id),
           this._totalScores135.get(id).get(this._scoreKey),
           this._scores1.get(id).get(this._scoreKey),
           this._scores3.get(id).get(this._scoreKey),
@@ -291,7 +299,7 @@ class MinkabuFundsScoreRanking {
 
     sheet.insertRowBefore(1)
     const topRow = [
-      'ID', 'カテゴリ', 'ファンド名', '購入', 'セレクト', '135トータル', '1年スコア', '3年スコア', '5年スコア', '10年スコア', '13510トータル', '1310トータル', '1510トータル', '3510トータル', '13トータル', '15トータル', '110トータル', '35トータル', '310トータル', '510トータル',
+      'ID', 'カテゴリ', 'ファンド名', '購入', 'セレクト', 'iDeCo', '135トータル', '1年スコア', '3年スコア', '5年スコア', '10年スコア', '13510トータル', '1310トータル', '1510トータル', '3510トータル', '13トータル', '15トータル', '110トータル', '35トータル', '310トータル', '510トータル',
     ]
     const topRowRange = sheet.getRange(1, 1, 1, topRow.length)
     topRowRange.setValues([topRow])
@@ -301,7 +309,7 @@ class MinkabuFundsScoreRanking {
     sheet.autoResizeColumn(3)
     const allDataRange = sheet.getDataRange()
     allDataRange.createFilter()
-    allDataRange.sort({column: 6, ascending: false})
+    allDataRange.sort({column: 7, ascending: false})
     console.log('_output')
   }
 }

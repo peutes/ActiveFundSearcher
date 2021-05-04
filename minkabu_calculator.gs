@@ -65,25 +65,25 @@ class MinkabuFundsScoreCalculator {
         fund.management = value[i++]
         fund.rating = value[i++]
         fund.assets = value[i++]
-        fund.salesCommission = value[i++]
+        fund.salesCommission = Number(value[i++]) * 100
         fund.fee = value[i++]
-        fund.redemptionFee = value[i++]
+        fund.redemptionFee = Number((value[i++]).replace('％', '').replace('-', ''))
         fund.category = value[i++]
         fund.launchDate = value[i++]
         fund.commissionPeriod = value[i++]
         i++;
 
-        fund.isSaledRakuten = value[i++]
-        fund.isSaledSbi = value[i++]
-        fund.isSaledAu = value[i++]
-        fund.isSaledMonex = value[i++]
-        fund.isSaledMatsui = value[i++]
-        fund.isSaledNomura = value[i++]
-        fund.isSaledDaiwa = value[i++]
-        fund.isSaledSmbc = value[i++]
-        fund.isSaledLine = value[i++]
-        fund.isSaledOkasan = value[i++]
-        fund.isSaledPayPay = value[i++]
+        fund.isSaledRakuten = value[i++] // ノーロード
+        fund.isSaledSbi = value[i++]　// ノーロード
+        fund.isSaledAu = value[i++]　// ノーロード
+        fund.isSaledMonex = value[i++]　// ノーロード
+        fund.isSaledMatsui = value[i++]　// ノーロード
+        fund.isSaledNomura = value[i++] // ごくわずかしかノーロードは無いので意味無し
+        fund.isSaledDaiwa = value[i++] // 一部ノーロード
+        fund.isSaledSmbc = value[i++]  // 一部ノーロード
+        fund.isSaledLine = value[i++]　// ノーロード
+        fund.isSaledOkasan = value[i++]　// ノーロード
+        fund.isSaledPayPay = value[i++]　// ノーロード
         fund.isSaledMitsui = value[i++]
         fund.isSaledUfj = value[i++]
         fund.isSaledYutyo = value[i++]
@@ -100,31 +100,36 @@ class MinkabuFundsScoreCalculator {
     console.log('_decideScreeningPolicy')
     this._funds.forEach(fund => {
       fund.returns.forEach((r, i) => {
-        if (r === null || fund.risks[i] === null || fund.sharps[i] === null) {
+        if (r === null || fund.risks[i] === 0 || fund.risks[i] === null || fund.sharps[i] === null) {
           return
         }
     
-//        // ルーキー枠制度 3年未満で1年のデータしか存在しないが優秀なファンドを救済する
-//        const rookieFilter = (i === 1 && fund.returns[2] === null ? 1.1 : 1)
-
         // 純資産信頼性フィルタ（平均化すると邪魔なので外す）
         //const assetsPow = Math.pow(fund.assets, 3)
         //const assetsFilter = assetsPow / (assetsPow + Math.pow(50000, 3))
 
         // TODO: スクリーニングで早めにやったほうがいいリスト        
-        // ・償還期間を見るべき。5年以内に償還するファンドは避けるべき。1年ではなく5年。
-        // ・信託財産留保額を見るべき
         // ・NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
+        
+        // ノーロード、買付手数料無料のファンド
+        const isNoRoadFund = fund.isSaledRakuten || fund.isSaledSbi || fund.isSaledAu || fund.isSaledMonex || fund.isSaledMatsui || fund.isSaledLine || fund.isSaledOkasan || fund.isSaledPayPay
 
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        fund.policy[i] = this._calcLowRiskFilter(fund, i, 100) * fund.sharps[i]
+        let sharp
+        if (isNoRoadFund || fund.salesCommission === 0) {
+          sharp = fund.sharps[i] - fund.redemptionFee / fund.risks[i]
+        } else {
+          sharp = (r - fund.salesCommission - fund.redemptionFee) / fund.risks[i]
+        }
+        fund.policy[i] = this._calcLowRiskFilter(fund, i, 100) * sharp // 100は公社債投信が除去できなかった
       })    
     })
   }
 
   // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
   _calcLowRiskFilter(fund, i, exp) {
-    const f = Math.max(Math.pow(fund.risks[i], exp), Math.pow(fund.risks[i], 1/exp), Math.abs(fund.returns[i]))
+    let f = Math.pow(fund.risks[i], exp)
+    f = Math.max((f >= 1 ? f : 0), Math.abs(fund.returns[i])) // 計算誤差で0にならないので
     return fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
   }
   
@@ -198,14 +203,15 @@ class MinkabuFundsScoreCalculator {
     return Math.sqrt(scores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / (scores.length - 1))
   }
   
-  _output() { 
+  _output() {
+    console.log('_output')
+
     const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
     const data = []
     this._funds.forEach(fund => {
-      const canBuy = fund.isSaledRakuten && !fund.ignore
       const row = [
         fund.link, fund.name, fund.totalScoresOf10531, ...fund.scores, '',
-        fund.category, canBuy, fund.isIdeco, fund.management, fund.rating, fund.assets, fund.salesCommission, fund.fee, fund.redemptionFee, fund.commissionPeriod,
+        fund.category, fund.isIdeco, fund.management, fund.rating, fund.assets, fund.salesCommission, fund.fee, fund.redemptionFee, fund.commissionPeriod,
       ]
 
       fund.returns.forEach((r, i) => {
@@ -226,7 +232,7 @@ class MinkabuFundsScoreCalculator {
     sheet.insertRowBefore(1)
     const topRow = [
       'リンク', 'ファンド名', '10531トータル', '1年スコア', '3年スコア', '5年スコア', '10年スコア', '',
-      'カテゴリ', '購入可', 'iDeCo', '運営会社', 'レーティング', '資産', '販売手数料', '信託報酬', '信託財産留保額', '信託期間',
+      'カテゴリ', 'iDeCo', '運営会社', 'レーティング', '資産', '販売手数料', '信託報酬', '信託財産留保額', '信託期間',
       '1年リターン', '1年リスク', '1年シャープ', '1年ポリシー', '3年リターン', '3年リスク', '3年シャープ', '3年ポリシー',
       '5年リターン', '5年リスク', '5年シャープ', '5年ポリシー', '10年リターン', '10年リスク', '10年シャープ', '10年ポリシー',
       'NO無視', '楽天', 'SBI', 'au', 'マネックス', '松井', '野村', '大和', 'SMBC', 'LINE', '岡三', 'PayPay', '三井', 'UFJ', 'ゆうちょ', 'みずほ',
@@ -239,45 +245,6 @@ class MinkabuFundsScoreCalculator {
     sheet.autoResizeColumn(2)
     sheet.getDataRange().createFilter()
   }
-
-  // _setColors(sheet, allRange, totalScoreCol, nameCol, lastRow) {
-  //   const white = '#ffffff' // needs RGB color
-  //   let colors = ['cyan', 'lime', 'yellow', 'orange', '#ea9999', '#ea9999', '#cfe2f3', '#cfe2f3', '#d9ead3', '#d9ead3']
-  //     .concat(new Array(12).fill('white'))
-  //   const colorNum = 5
-    
-  //   allRange.sort({column: totalScoreCol, ascending: false})
-  //   const nameRange = sheet.getRange(1, nameCol, lastRow)
-
-  //   for (let i=totalScoreCol; i < totalScoreCol + calculatedNum * (2 + minkabuTermSize) - 1; i++) {
-  //     let c = false
-  //     for (let j=1; j<calculatedNum; j++) {
-  //       if (i === totalScoreCol + j * (minkabuTermSize + 2) - 1) {
-  //         c = true
-  //       }
-  //     }
-  //     if (c) {
-  //       continue
-  //     }
-    
-  //     allRange.sort({column: i, ascending: false})
-      
-  //     let j = 0
-  //     const range = sheet.getRange(1, i, colorNum * colors.length)
-  //     const rgbs = range.getBackgrounds().map(rows => {
-  //       return rows.map(rgb => {
-  //         if (rgb !== white) {
-  //           return rgb
-  //         }
-  //         const result = colors[parseInt(j / colorNum)]
-  //         j++;
-
-  //         return result
-  //       })
-  //     })
-  //     range.setBackgrounds(rgbs)
-  //   }
-  // }
 }
 
 function calcMinkabuFundsScore() {
