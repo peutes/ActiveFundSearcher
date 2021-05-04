@@ -5,7 +5,8 @@ function onOpen() {
   for (let i=0; i<fundsSheetMax; i++) {
     menu.push({name: 'ファンド' + i, functionName: 'scrapingMinkabuFunds' + i})
   }
-  menu.push({name: 'ファンドスコア', functionName: 'calcMinkabuFundsScore'})
+  menu.push({name: 'スコア計算', functionName: 'calcMinkabuFundsScore'})
+  menu.push({name: 'スコアランキング計算', functionName: 'calcMinkabuFundsScoreRanking'})
   SpreadsheetApp.getActiveSpreadsheet().addMenu("みんかぶ", menu)
 }
 
@@ -61,7 +62,47 @@ function scrapingMinkabuFunds11() {
   (new MinkabuFundsScraper(11)).scraping()
 }
 
+function scrapingMinkabuFunds12() {
+  (new MinkabuFundsScraper(12)).scraping()
+}
+
+function scrapingMinkabuFunds13() {
+  (new MinkabuFundsScraper(13)).scraping()
+}
+
+function scrapingMinkabuFunds14() {
+  (new MinkabuFundsScraper(14)).scraping()
+}
+
+function scrapingMinkabuFunds15() {
+  (new MinkabuFundsScraper(15)).scraping()
+}
+
+function scrapingMinkabuFunds16() {
+  (new MinkabuFundsScraper(16)).scraping()
+}
+
+function scrapingMinkabuFunds17() {
+  (new MinkabuFundsScraper(17)).scraping()
+}
+
+function scrapingMinkabuFunds18() {
+  (new MinkabuFundsScraper(18)).scraping()
+}
+
+function scrapingMinkabuFunds19() {
+  (new MinkabuFundsScraper(19)).scraping()
+}
+
+function scrapingMinkabuFunds20() {
+  (new MinkabuFundsScraper(20)).scraping()
+}
+
 function calcMinkabuFundsScore() {
   (new MinkabuFundsScoreCalculator).calc()
+}
+
+function calcMinkabuFundsScoreRanking() {
+  (new MinkabuFundsScoreRanking).calc()
 }
 
