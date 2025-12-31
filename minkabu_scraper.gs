@@ -1,3 +1,7 @@
+
+function scrapingMinkabuRanking() {
+  (new MinkabuRankingScraper()).scraping()
+}
 function scrapingMinkabuFunds() {
   (new MinkabuFundsScraper(0)).scraping()
 }
@@ -58,7 +62,7 @@ class MinkabuSheetInfo {
     }
     this.logSheetName = 'Log'
     
-    this.scoreSheetsName = ['2020年9月', '2020年10月', '2020年11月', '2020年12月', '2021年1月', '2021年2月', '2021年3月', '2021年4月']
+    // これを増やす
     this.minkabuSpreadSheet = SpreadsheetApp.getActiveSpreadsheet();
   }
   
@@ -100,15 +104,23 @@ class MinkabuRankingScraper {
     const baseLink = 'https://itf.minkabu.jp'
 
     let i=0;
+    console.log(minkabuRankPageNum)
     for (let p=1; p<=minkabuRankPageNum; p++) {
-      const link = baseLink + '/ranking/return?page=' + p
-      const html = UrlFetchApp.fetch(link).getContentText()
-      const table = Parser.data(html).from('<table class="md_table ranking_table">').to("</table>").build()
-      const aList = Parser.data(table).from('<a class="fwb"').to("</a>").iterate()
+      const link = baseLink + '/ranking/sharpe_ratio?exchange=0&page=' + p + '&term=' + minkabuRankingTermNum
+      console.log(link)
+      const headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"};
+      const options = {
+        "method": "get",
+        "muteHttpExceptions" : true,
+        "headers" : headers,
+      }
+      const html = UrlFetchApp.fetch(link, options).getContentText()
+      const aList = Parser.data(html).from('<a data-turbo="false" class="text-itf-sm text-itf-blue-link font-bold hover:underline hover:text-itf-blue-light"').to("</a>").iterate()
       if (aList.length === 0 || aList[0].indexOf('<meta') != -1) {
         return
       }
-    
+      console.log(html, aList)
       aList.forEach(a => {
         const result = a.match(/href="(.*)">(.*)/)
         const pass = result[1]
@@ -117,7 +129,7 @@ class MinkabuRankingScraper {
         i++
       })
             
-      if (p%20 === 0) {
+      if (p%5 === 0) {
         console.log(p, this._funds.size, i)
       }
     }
@@ -130,7 +142,7 @@ class MinkabuRankingScraper {
       '2931316B', '03317172', '9C31116A', '0131C18A', '04316186', '89311164', '8931217C', '03316183', '89313135', '96312073', 
       '03319172', '2931113C', '03311187', '0431Q169', '0231202C', '25311177', '65311058', '68311003', '0331C177', '8931111A', 
       '03318172', '0331A172', '0231402C', 'AN31118A', '0431U169', '29314136', '79314169', '03312175', '04316188', '8931118A',
-      '96311073', '03311112', '89312121', '89313121', '89314121', '89315121',
+      '96311073', '03311112', '89312121', '89313121', '89314121', '89315121', '9C311219'
     ]
     
     idecoIds.forEach(id => {
@@ -171,7 +183,20 @@ class MinkabuFundsScraper {
     let i = 0
     const c = 2
     this._funds.forEach(fund => {
-      const html = UrlFetchApp.fetch(fund.link).getContentText()
+      // このリンクが動かないので暫定処置
+      console.log(fund.link)
+      if (fund.link == 'https://itf.minkabu.jp/fund/AN31118A'){
+        return
+      }
+
+      const headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"};
+      const options = {
+        "method": "get",
+        "muteHttpExceptions" : true,
+        "headers" : headers,
+      }
+      const html = UrlFetchApp.fetch(fund.link, options).getContentText()
       const tables = Parser.data(html).from('<table class="md_table">').to('</table>').iterate()
 
       // 名前
@@ -181,6 +206,8 @@ class MinkabuFundsScraper {
 
       const tdList0 = Parser.data(tables[0]).from('<td class="tar">').to('</td>').iterate()
       const tdList1 = Parser.data(tables[1]).from('<td class="tar">').to('</td>').iterate()
+      console.log(tfList0)
+
 
       fund.rating = Parser.data(tdList0[0]).from('<span class="gold_star">').to('</span>').build() // レーティング
 
@@ -192,9 +219,9 @@ class MinkabuFundsScraper {
       })
       fund.assets = 100000000 * Number(amountList[0]) + 10000 * Number(amountList[1]) + Number(amountList[2])
 
-      fund.salesCommission = tdList1[0] // 販売手数料
-      fund.fee = tdList1[1] // 信託報酬
-      fund.redemptionFee = tdList1[2] // 信託財産留保額
+      fund.salesCommission = tdList1[0].replace("%", "") // 販売手数料
+      fund.fee = tdList1[1].replace("年率", "").replace("％", "") // 信託報酬
+      fund.redemptionFee = tdList1[2].replace("年率", "").replace("％", "") // 信託財産留保額
 
       const tdList2 = Parser.data(tables[3]).from('<td>').to('</td>').iterate()
 
