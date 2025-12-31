@@ -6,7 +6,7 @@ function onOpen() {
     menu.push({name: 'ファンド' + i, functionName: 'scrapingMinkabuFunds' + i})
   }
   menu.push({name: 'スコア計算', functionName: 'calcMinkabuFundsScore'})
-  menu.push({name: 'スコアランキング計算', functionName: 'calcMinkabuFundsScoreRanking'})
+  menu.push({name: 'ランキング2', functionName: 'getMinkabuSharpeRatioRanking'})
   SpreadsheetApp.getActiveSpreadsheet().addMenu("みんかぶ", menu)
 }
 
@@ -100,9 +100,5 @@ function scrapingMinkabuFunds20() {
 
 function calcMinkabuFundsScore() {
   (new MinkabuFundsScoreCalculator).calc()
-}
-
-function calcMinkabuFundsScoreRanking() {
-  (new MinkabuFundsScoreRanking).calc()
 }
 
