@@ -4,31 +4,22 @@ class MinkabuFundsScoreCalculator {
     
     this._funds = []
     this._otherIgnoreList = [
-      // 定期購入ができない系
-      "DIAM新興市場日本株ファンド",
-      "あい・パワーファンド(iパワー)", // 業務停止命令で換金もできなくなり危険すぎるため。あと積立購入ができない
-      "SBI中小型成長株ファンドジェイネクスト(jnext)", // スポット購入オンリー
-      "SBI中小型割安成長株ファンドジェイリバイブ(jrevive)", // スポット購入オンリー
-
-      // 分配金系
-      "三菱UFJグローバル・ボンド・オープン(毎月決算型)(花こよみ)",
-      "アライアンス・バーンスタイン・米国成長株投信Cコース毎月決算型(為替ヘッジあり)予想分配金提示型",
       "アライアンス・バーンスタイン・米国成長株投信Dコース毎月決算型(為替ヘッジなし)予想分配金提示型",
-      "グローバル・フィンテック株式ファンド(年2回決算型)",
-      "グローバル・フィンテック株式ファンド(為替ヘッジあり・年2回決算型)",
-      "グローバル・スマート・イノベーション・オープン(年2回決算型)(iシフト)",
-      "グローバル・スマート・イノベーション・オープン(年2回決算型)為替ヘッジあり(iシフト(ヘッジあり))",
+      "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジなし)",
+      "ブラックロック・ヘルスサイエンス・ファンド(為替ヘッジなし/年4回決算型)"
     ]
-          
-    this.logSheet = this._sheetInfo.getSheet(this._sheetInfo.logSheetName)
-    this.logSheet.clear()
   }
       
   calc() {
+    console.log("debug1")
     this._fetchFunds()
+    console.log("debug2")
     this._decideScreeningPolicy()
-    this._calsScores()
+    console.log("debug3")
+    this._calcScores()
+    console.log("debug4")
     this._calcTotalScores()
+    console.log("debug5")
     this._output()
   }
 
@@ -65,9 +56,9 @@ class MinkabuFundsScoreCalculator {
         fund.management = value[i++]
         fund.rating = value[i++]
         fund.assets = value[i++]
-        fund.salesCommission = Number(value[i++]) * 100
-        fund.fee = value[i++]
-        fund.redemptionFee = Number((value[i++]).replace('％', '').replace('-', ''))
+        fund.salesCommission = Number(value[i++])
+        fund.fee = Number(value[i++])
+        fund.redemptionFee = Number(value[i++])
         fund.category = value[i++]
         fund.launchDate = value[i++]
         fund.commissionPeriod = value[i++]
@@ -110,31 +101,25 @@ class MinkabuFundsScoreCalculator {
 
         // TODO: スクリーニングで早めにやったほうがいいリスト        
         // ・NISA口座から外れたら、分配金フィルタを入れるべき。分配金の税金で損するので、25%*20%=5%はダウンするべき。95%計算
-        
-        // ノーロード、買付手数料無料のファンド
-        const isNoRoadFund = fund.isSaledRakuten || fund.isSaledSbi || fund.isSaledAu || fund.isSaledMonex || fund.isSaledMatsui || fund.isSaledLine || fund.isSaledOkasan || fund.isSaledPayPay
 
         // √を取りたくなるが、√すると絶対値1以下が逆転して、分布が歪になり正規分布でなくなるため使えない・・・
-        let sharp
-        if (isNoRoadFund || fund.salesCommission === 0) {
-          sharp = fund.sharps[i] - fund.redemptionFee / fund.risks[i]
-        } else {
-          sharp = (r - fund.salesCommission - fund.redemptionFee) / fund.risks[i]
-        }
-        fund.policy[i] = this._calcLowRiskFilter(fund, i, 100) * sharp // 100は公社債投信が除去できなかった
-      })    
+        const sharp = fund.sharps[i] - fund.redemptionFee / fund.risks[i]
+       
+        fund.policy[i] = this._calcLowRiskFilter(fund, i) * sharp // 100は公社債投信が除去できなかった
+      })
     })
   }
 
   // 公社債と弱小債券ファンドを除去するためのフィルタ。債券ファンドはリスクが低いため、無駄にシャープレシオが高くなりやすいため傾き補正。また、リターンが飛び抜けてるファンドのインパクトを下げる効果もある。
-  _calcLowRiskFilter(fund, i, exp) {
-    let f = Math.pow(fund.risks[i], exp)
-    f = Math.max((f >= 1 ? f : 0), Math.abs(fund.returns[i])) // 計算誤差で0にならないので
+  _calcLowRiskFilter(fund, i) {
+    //let f = fund.risks[i] * 0.2 // リターンが低い投資信託を下げる。
+    let f = Math.max(fund.risks[i] - minusRisk, 0) // リターンが低い投資信託を下げる。
+    
     return fund.sharps[i] == 0 ? 0 : f / (f + Math.abs(fund.sharps[i])) // sqrt(sharp) にすると、1年のときはいいが3年5年10年で意味が反転するので良くないため辞める。
   }
   
-  _calsScores() {
-    console.log('_calsScores')
+  _calcScores() {
+    console.log('_calcScores')
 
     // マイナスの時の正規分布作成用データ
     const rrScoresList = this._funds.map(f => f.returns.map((_, i) => this._calcMinusScores(f, i)))
@@ -196,21 +181,30 @@ class MinkabuFundsScoreCalculator {
   }
 
   _ave(scores) {
-    return scores.reduce((acc, v) => acc + v, 0) / scores.length
+    if(scores.length > 0) {
+      return scores.reduce((acc, v) => acc + v, 0) / scores.length
+    } else {
+      return 0
+    }
   }
 
   _srd(scores, ave) {
-    return Math.sqrt(scores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / (scores.length - 1))
+    if (scores.length > 0) {
+      return Math.sqrt(scores.reduce((acc, v) => acc + Math.pow(v - ave, 2), 0) / (scores.length - 1))
+    } else {
+      return 0
+    }
   }
   
   _output() {
     console.log('_output')
 
-    const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
     const data = []
     this._funds.forEach(fund => {
+      console.log(fund.name, fund.totalScoresOf53, fund.scores)
+      
       const row = [
-        fund.link, fund.name, fund.totalScoresOf10531, ...fund.scores, '',
+        fund.link, fund.name, fund.totalScoresOf53, ...fund.scores, '',
         fund.category, fund.isIdeco, fund.management, fund.rating, fund.assets, fund.salesCommission, fund.fee, fund.redemptionFee, fund.commissionPeriod,
       ]
 
@@ -226,12 +220,18 @@ class MinkabuFundsScoreCalculator {
 
       data.push(row)
     })
+    console.log(data.length, data[0].length)
+    const sheet = this._sheetInfo.insertSheet(this._sheetInfo.getScoreSheetName())
+    sheet.insertRows(1, 3000)
+    sheet.insertColumnsAfter(1, 20);
     sheet.getRange(1, 1, data.length, data[0].length).setValues(data)
-    sheet.getDataRange().sort({column: 3, ascending: false})
+
+    // 5年スコアでソートすることに決定！
+    sheet.getDataRange().sort({column: 6, ascending: false})
 
     sheet.insertRowBefore(1)
     const topRow = [
-      'リンク', 'ファンド名', '10531トータル', '1年スコア', '3年スコア', '5年スコア', '10年スコア', '',
+      'リンク', 'ファンド名', '53トータル', '1年スコア', '3年スコア', '5年スコア', '10年スコア', '',
       'カテゴリ', 'iDeCo', '運営会社', 'レーティング', '資産', '販売手数料', '信託報酬', '信託財産留保額', '信託期間',
       '1年リターン', '1年リスク', '1年シャープ', '1年ポリシー', '3年リターン', '3年リスク', '3年シャープ', '3年ポリシー',
       '5年リターン', '5年リスク', '5年シャープ', '5年ポリシー', '10年リターン', '10年リスク', '10年シャープ', '10年ポリシー',
